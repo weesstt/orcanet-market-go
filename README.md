@@ -7,20 +7,20 @@ concept of a "user account". Instead, each consumer can input the hash digest of
 # Server Usage
 
 ```bash
-cd server/
+cd market/server/
 go run server.go
 ```
 
 # Consumer Usage
 
 ```bash
-cd consumer/
+cd market/consumer/
 go run server.go
 ```
 
 # Producer Usage
 
 ```bash
-cd consumer/
+cd market/consumer/
 go run server.go
 ```
