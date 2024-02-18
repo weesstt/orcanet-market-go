@@ -15,12 +15,12 @@ go run server.go
 
 ```bash
 cd market/consumer/
-go run server.go
+go run consumer.go
 ```
 
 # Producer Usage
 
 ```bash
 cd market/consumer/
-go run server.go
+go run producer.go
 ```
