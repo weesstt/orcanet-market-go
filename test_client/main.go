@@ -22,10 +22,10 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
-	"time"
 	"fmt"
+	"log"
 	"math/rand"
+	"time"
 
 	pb "orcanet/market"
 
@@ -35,7 +35,6 @@ import (
 
 var (
 	addr   = flag.String("addr", "localhost:50051", "the address to connect to")
-	fileId = flag.String("fileId", "RatCoin.pdf", "File ID")
 )
 
 func main() {
@@ -49,35 +48,61 @@ func main() {
 	c := pb.NewMarketClient(conn)
 
 	// Prompt for username in terminal
-    var username string
-    fmt.Print("Enter username: ")
-    fmt.Scanln(&username)
+	var username string
+	fmt.Print("Enter username: ")
+	fmt.Scanln(&username)
 
-    // Generate a random ID for new user
-    rand.Seed(time.Now().UnixNano())
-    userID := fmt.Sprintf("user%d", rand.Intn(10000))
+	// Generate a random ID for new user
+	rand.Seed(time.Now().UnixNano())
+	userID := fmt.Sprintf("user%d", rand.Intn(10000))
 
-    // Create a User struct with the provided username and generated ID
-    user := &pb.User{
-        Id:   userID,
-        Name: username,
-    }
+	// Create a User struct with the provided username and generated ID
+	user := &pb.User{
+		Id:   userID,
+		Name: username,
+	}
 
-	// Test
-	createRequest(c, user, *fileId)
-	registerRequest(c, user, *fileId)
+	for {
+		fmt.Println("---------------------------------")
+		fmt.Println("1. Request a file")
+		fmt.Println("2. Register a file")
+		fmt.Println("3. Check requests for a file")
+		fmt.Println("4. Check holders for a file")
+		fmt.Println("5. Exit")
+		fmt.Print("Option: ")
+		var choice int
+		fmt.Scanln(&choice)
 
-	checkRequests(c, *fileId)
-	checkHolders(c, *fileId)
+		fmt.Print("Enter a fileId: ")
+		var fileId string
+		fmt.Scanln(&fileId)
+		switch choice {
+			case 1:
+				fmt.Print("Enter a bid: ")
+				var bid int
+				fmt.Scanln(&bid)
 
+				createRequest(c, user, fileId, bid)
+			case 2:
+				registerRequest(c, user, fileId)
+			case 3:
+				checkRequests(c, fileId)
+			case 4:
+				checkHolders(c, fileId)
+			case 5:
+				return
+		}
+
+		fmt.Println("\n\n")
+	}
 }
 
 // creates a request that a user with userId wants a file with fileId
-func createRequest(c pb.MarketClient, user *pb.User, fileId string) {
+func createRequest(c pb.MarketClient, user *pb.User, fileId string, bid int) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileId: fileId})
+	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileId: fileId, Bid: int32(bid)})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
@@ -94,7 +119,10 @@ func checkRequests(c pb.MarketClient, fileId string) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
-		log.Printf("Requests: %s", reqs.GetStrings())
+		for _, req := range reqs.GetRequests() {
+			user := req.GetUser()
+			log.Printf("Username: %s, Bid: %d", user.GetName(), req.GetBid())
+		}
 	}
 }
 

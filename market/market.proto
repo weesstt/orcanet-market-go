@@ -8,7 +8,7 @@ package market;
 
 service Market {
   rpc RequestFile (FileRequest) returns (FileResponse) {}
-  rpc CheckRequests (CheckRequest) returns (ListReply) {}
+  rpc CheckRequests (CheckRequest) returns (Requests) {}
   rpc CheckHolders (CheckHolder) returns (ListReply) {}
   rpc RegisterFile (RegisterRequest) returns (google.protobuf.Empty) {}
 }
@@ -21,6 +21,7 @@ message User {
 message FileRequest {
   User user = 1;
   string fileId = 2;
+  int32 bid = 3;
 }
 
 message RegisterRequest {
@@ -39,6 +40,10 @@ message CheckHolder {
 message FileResponse {
   bool exists = 1;
   string message = 2;
+}
+
+message Requests {
+  repeated FileRequest requests = 1;
 }
 
 message ListReply {
