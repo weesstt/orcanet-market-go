@@ -53,7 +53,6 @@ func main() {
 	fmt.Scanln(&username)
 
 	// Generate a random ID for new user
-	rand.Seed(time.Now().UnixNano())
 	userID := fmt.Sprintf("user%d", rand.Intn(10000))
 
 	// Create a User struct with the provided username and generated ID
@@ -71,16 +70,33 @@ func main() {
 		fmt.Println("5. Exit")
 		fmt.Print("Option: ")
 		var choice int
-		fmt.Scanln(&choice)
+		_, err := fmt.Scanln(&choice)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			continue
+		}
+
+		if choice == 5 {
+			return
+		}
 
 		fmt.Print("Enter a fileId: ")
 		var fileId string
-		fmt.Scanln(&fileId)
+		_, err = fmt.Scanln(&fileId)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			continue
+		}
+
 		switch choice {
 		case 1:
 			fmt.Print("Enter a bid: ")
 			var bid int
-			fmt.Scanln(&bid)
+			_, err := fmt.Scanln(&bid)
+			if err != nil {
+				fmt.Println("Error: ", err)
+				continue
+			}
 
 			createRequest(c, user, fileId, bid)
 		case 2:
@@ -91,6 +107,8 @@ func main() {
 			checkHolders(c, fileId)
 		case 5:
 			return
+		default:
+			fmt.Println("Unknown option: %v", choice)
 		}
 
 		fmt.Println("\n\n")
