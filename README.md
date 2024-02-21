@@ -8,26 +8,26 @@ concept of a "user account". Instead, each consumer can input the hash digest of
 - Set up a gRPC service to initiate a file transfer on behalf of the producer and consumers whenever a producer wants to accept a transaction. 
 
 ## Needed Clarifications
-- This build assumes that multiple, unique people can place bids on the same file and producers can choose which person they ultimately want to serve. Since only the file digest is needed to identify a transaction, anyone with the file digest can request anyone elses file. Is this behavior correct? 
+This build assumes that multiple, unique people can place bids on the same file and producers can choose which person they ultimately want to serve. Since only the file digest is needed to identify a transaction, anyone with the file digest can request anyone elses file. Is this behavior correct? 
 
 ## Important!
-- gRPC Protocol Buffers can not have repeated field numbers! When removing a field number either by using a different number or removing a field entirely, add a reserved statement to the message with the field number
+gRPC Protocol Buffers can not have repeated field numbers! When removing a field number either by using a different number or removing a field entirely, add a reserved statement to the message with the field number
 so that it cannot be reused. Other protobuf coding best practices can be found [here](https://protobuf.dev/programming-guides/dos-donts/).
 
 ## Usage
-- Server
+Server
 ```bash
 $ cd market/
 $ go run server/server.go
 ```
 
-- Consumer
+Consumer
 ```bash
 $ cd market/
 $ go run consumer/Consumer.go
 ```
 
-- Producer
+Producer
 ```bash
 $ cd market/
 $ go run producer/producer.go
