@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+option go_package = "github.com/weesstt/starfish-market";
+
+service Market {
+    //A simple RPC to make a request to the server to retrieve a file.
+    //Message MarketRequestArgs contains the information for the request.
+    //Message MarketRequestInfo is returned to indicate that the request was received and contains information
+    //about the request such as the bid, the file digest, the uuid of the transaction, and the public key of the requesting person.
+    rpc ConsumerRetrieveRequest(MarketRequestArgs) returns (MarketRequestInfo) {}
+
+    //A simple RPC to make a query to the market for a specific file. 
+    //Message MarketQueryArgs contains the specific file digest to query. 
+    //Message MarketQueryList contains an 'array' of MarketRequestInfo messages which are the current requests.
+    rpc ProducerQuery(MarketQueryArgs) returns (MarketQueryList) {}
+}
+
+//A message that contains the arguments to make a request to retrieve a file. 
+message MarketRequestArgs {
+    //The number of OrcaCoins to offer for the transaction
+    float bid = 1;
+
+    //The file digest of the file that is desired.
+    string fileDigest = 2;
+}
+
+//A message that contains the information of a specific market file request. Returned by the ConsumerRetrieveRequest rpc.
+message MarketRequestInfo {
+    //The number of OrcaCoins offered for the transaction.
+    float bid = 1;
+    
+    //The file digest of the file requested for the transaction.
+    string fileDigest = 2;
+
+    //The UUID associated with the transaction.
+    string uuid = 3;
+
+    //The public key of the consumer requesting the file. 
+    string pubKey = 4;
+}
+
+//A message that contains the arguments to query the server to see bids for a specific file. 
+message MarketQueryArgs {
+    //The digest of the file to query for requests. 
+    string fileDigest = 1;
+}
+
+//A message that contains the list of market requests. Returned by the ProducerQuery rpc. 
+message MarketQueryList {
+    //A list of market requests.
+    repeated MarketRequestInfo requests = 1;
+}
+
+
