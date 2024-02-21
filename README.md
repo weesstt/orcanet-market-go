@@ -51,7 +51,7 @@ protoc --go_out=. --go_opt=paths=source_relative \
 ```
 - Must be done every time there is an update to the market.proto file to correctly access stubs within Go.
 
-## RPC Documentation (TODO)
+## RPC Documentation 
 ```protobuf
 service Market {
     //A simple RPC to make a request to the server to retrieve a file.
