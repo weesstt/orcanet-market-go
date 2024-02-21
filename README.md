@@ -10,7 +10,7 @@ concept of a "user account". Instead, each consumer can input the hash digest of
 ## Needed Clarifications
 This build assumes that multiple, unique people can place bids on the same file and producers can choose which person they ultimately want to serve. Since only the file digest is needed to identify a transaction, anyone with the file digest can request anyone elses file. Is this behavior correct? 
 
-## Important!
+## Important Best Practices!
 gRPC Protocol Buffers can not have repeated field numbers! When removing a field number either by using a different number or removing a field entirely, add a reserved statement to the message with the field number
 so that it cannot be reused. Other protobuf coding best practices can be found [here](https://protobuf.dev/programming-guides/dos-donts/).
 
