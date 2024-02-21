@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	addr   = flag.String("addr", "localhost:50051", "the address to connect to")
+	addr = flag.String("addr", "localhost:50051", "the address to connect to")
 )
 
 func main() {
@@ -77,20 +77,20 @@ func main() {
 		var fileId string
 		fmt.Scanln(&fileId)
 		switch choice {
-			case 1:
-				fmt.Print("Enter a bid: ")
-				var bid int
-				fmt.Scanln(&bid)
+		case 1:
+			fmt.Print("Enter a bid: ")
+			var bid int
+			fmt.Scanln(&bid)
 
-				createRequest(c, user, fileId, bid)
-			case 2:
-				registerRequest(c, user, fileId)
-			case 3:
-				checkRequests(c, fileId)
-			case 4:
-				checkHolders(c, fileId)
-			case 5:
-				return
+			createRequest(c, user, fileId, bid)
+		case 2:
+			registerRequest(c, user, fileId)
+		case 3:
+			checkRequests(c, fileId)
+		case 4:
+			checkHolders(c, fileId)
+		case 5:
+			return
 		}
 
 		fmt.Println("\n\n")
