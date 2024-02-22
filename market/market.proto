@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "orcanet/market/market";
+
+package market;
+
+service Market {
+  rpc RequestFile (FileRequest) returns (FileResponse) {}
+  rpc CheckRequests (CheckRequest) returns (ListReply) {}
+  rpc CheckHolders (CheckHolder) returns (ListReply) {}
+  rpc RegisterFile (RegisterRequest) returns (google.protobuf.Empty) {}
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+}
+
+message FileRequest {
+  User user = 1;
+  string fileId = 2;
+}
+
+message RegisterRequest {
+  User user = 1;
+  string fileId = 2;
+}
+
+message CheckRequest {
+  string fileId = 1;
+}
+
+message CheckHolder {
+  string fileId = 1;
+}
+
+message FileResponse {
+  bool exists = 1;
+  string message = 2;
+}
+
+message ListReply {
+  repeated string strings = 1;
+}
