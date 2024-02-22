@@ -80,9 +80,9 @@ func main() {
 			return
 		}
 
-		fmt.Print("Enter a fileId: ")
-		var fileId string
-		_, err = fmt.Scanln(&fileId)
+		fmt.Print("Enter a file hash: ")
+		var fileHash string
+		_, err = fmt.Scanln(&fileHash)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			continue
@@ -98,13 +98,13 @@ func main() {
 				continue
 			}
 
-			createRequest(c, user, fileId, bid)
+			createRequest(c, user, fileHash, bid)
 		case 2:
-			registerRequest(c, user, fileId)
+			registerRequest(c, user, fileHash)
 		case 3:
-			checkRequests(c, fileId)
+			checkRequests(c, fileHash)
 		case 4:
-			checkHolders(c, fileId)
+			checkHolders(c, fileHash)
 		case 5:
 			return
 		default:
@@ -115,12 +115,12 @@ func main() {
 	}
 }
 
-// creates a request that a user with userId wants a file with fileId
-func createRequest(c pb.MarketClient, user *pb.User, fileId string, bid int) {
+// creates a request that a user with userId wants a file with fileHash
+func createRequest(c pb.MarketClient, user *pb.User, fileHash string, bid int) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileId: fileId, Bid: int32(bid)})
+	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash, Bid: int32(bid)})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
@@ -128,12 +128,12 @@ func createRequest(c pb.MarketClient, user *pb.User, fileId string, bid int) {
 	}
 }
 
-// get all users who wants a file with fileId
-func checkRequests(c pb.MarketClient, fileId string) {
+// get all users who wants a file with fileHash
+func checkRequests(c pb.MarketClient, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	reqs, err := c.CheckRequests(ctx, &pb.CheckRequest{FileId: fileId})
+	reqs, err := c.CheckRequests(ctx, &pb.CheckRequest{FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
@@ -144,12 +144,12 @@ func checkRequests(c pb.MarketClient, fileId string) {
 	}
 }
 
-// print all users who are holding a file with fileId
-func checkHolders(c pb.MarketClient, fileId string) {
+// print all users who are holding a file with fileHash
+func checkHolders(c pb.MarketClient, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	holders, err := c.CheckHolders(ctx, &pb.CheckHolder{FileId: fileId})
+	holders, err := c.CheckHolders(ctx, &pb.CheckHolder{FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
@@ -157,11 +157,11 @@ func checkHolders(c pb.MarketClient, fileId string) {
 	}
 }
 
-func registerRequest(c pb.MarketClient, user *pb.User, fileId string) {
+func registerRequest(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := c.RegisterFile(ctx, &pb.RegisterRequest{User: user, FileId: fileId})
+	_, err := c.RegisterFile(ctx, &pb.RegisterRequest{User: user, FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {

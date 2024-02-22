@@ -20,21 +20,21 @@ message User {
 
 message FileRequest {
   User user = 1;
-  string fileId = 2;
+  string fileHash = 2;
   int32 bid = 3;
 }
 
 message RegisterRequest {
   User user = 1;
-  string fileId = 2;
+  string fileHash = 2;
 }
 
 message CheckRequest {
-  string fileId = 1;
+  string fileHash = 1;
 }
 
 message CheckHolder {
-  string fileId = 1;
+  string fileHash = 1;
 }
 
 message FileResponse {

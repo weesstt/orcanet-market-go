@@ -89,7 +89,7 @@ func main() {
 
 // Add a request that a user with userId wants file with fileId
 func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileResponse, error) {
-	fileId := in.GetFileId()
+	fileId := in.GetFileHash()
 
 	// Check if file is held by anyone; I hate Go
 	if _, ok := fileHolders[fileId]; !ok {
@@ -103,7 +103,7 @@ func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileR
 
 // Get a list of userIds who are requesting a file with fileId
 func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Requests, error) {
-	fileId := in.GetFileId()
+	fileId := in.GetFileHash()
 	printRequestsMap()
 
 	reqs := requests[fileId]
@@ -112,7 +112,7 @@ func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Re
 
 // CheckHolders returns a list of user names holding a file with fileId
 func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHolder) (*pb.ListReply, error) {
-	fileId := in.GetFileId()
+	fileId := in.GetFileHash()
 
 	holders := fileHolders[fileId]
 
@@ -129,7 +129,7 @@ func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHolder) (*pb.List
 // register that the userId holds fileId, then add the user to the list of file holders
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterRequest) (*emptypb.Empty, error) {
 	user := in.GetUser()
-	fileId := in.GetFileId()
+	fileId := in.GetFileHash()
 
 	// Check if file is held by anyone, don't do anything
 	// TODO: perform blockchain transaction here
