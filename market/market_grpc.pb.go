@@ -21,9 +21,9 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	Market_RequestFile_FullMethodName   = "/market.Market/RequestFile"
+	Market_RegisterFile_FullMethodName  = "/market.Market/RegisterFile"
 	Market_CheckRequests_FullMethodName = "/market.Market/CheckRequests"
 	Market_CheckHolders_FullMethodName  = "/market.Market/CheckHolders"
-	Market_RegisterFile_FullMethodName  = "/market.Market/RegisterFile"
 )
 
 // MarketClient is the client API for Market service.
@@ -31,9 +31,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MarketClient interface {
 	RequestFile(ctx context.Context, in *FileRequest, opts ...grpc.CallOption) (*FileResponse, error)
+	RegisterFile(ctx context.Context, in *SupplyFile, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CheckRequests(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*Requests, error)
-	CheckHolders(ctx context.Context, in *CheckHolder, opts ...grpc.CallOption) (*ListReply, error)
-	RegisterFile(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CheckHolders(ctx context.Context, in *CheckHolder, opts ...grpc.CallOption) (*Holders, error)
 }
 
 type marketClient struct {
@@ -53,6 +53,15 @@ func (c *marketClient) RequestFile(ctx context.Context, in *FileRequest, opts ..
 	return out, nil
 }
 
+func (c *marketClient) RegisterFile(ctx context.Context, in *SupplyFile, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Market_RegisterFile_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *marketClient) CheckRequests(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*Requests, error) {
 	out := new(Requests)
 	err := c.cc.Invoke(ctx, Market_CheckRequests_FullMethodName, in, out, opts...)
@@ -62,18 +71,9 @@ func (c *marketClient) CheckRequests(ctx context.Context, in *CheckRequest, opts
 	return out, nil
 }
 
-func (c *marketClient) CheckHolders(ctx context.Context, in *CheckHolder, opts ...grpc.CallOption) (*ListReply, error) {
-	out := new(ListReply)
+func (c *marketClient) CheckHolders(ctx context.Context, in *CheckHolder, opts ...grpc.CallOption) (*Holders, error) {
+	out := new(Holders)
 	err := c.cc.Invoke(ctx, Market_CheckHolders_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *marketClient) RegisterFile(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, Market_RegisterFile_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +85,9 @@ func (c *marketClient) RegisterFile(ctx context.Context, in *RegisterRequest, op
 // for forward compatibility
 type MarketServer interface {
 	RequestFile(context.Context, *FileRequest) (*FileResponse, error)
+	RegisterFile(context.Context, *SupplyFile) (*emptypb.Empty, error)
 	CheckRequests(context.Context, *CheckRequest) (*Requests, error)
-	CheckHolders(context.Context, *CheckHolder) (*ListReply, error)
-	RegisterFile(context.Context, *RegisterRequest) (*emptypb.Empty, error)
+	CheckHolders(context.Context, *CheckHolder) (*Holders, error)
 	mustEmbedUnimplementedMarketServer()
 }
 
@@ -98,14 +98,14 @@ type UnimplementedMarketServer struct {
 func (UnimplementedMarketServer) RequestFile(context.Context, *FileRequest) (*FileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestFile not implemented")
 }
+func (UnimplementedMarketServer) RegisterFile(context.Context, *SupplyFile) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterFile not implemented")
+}
 func (UnimplementedMarketServer) CheckRequests(context.Context, *CheckRequest) (*Requests, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckRequests not implemented")
 }
-func (UnimplementedMarketServer) CheckHolders(context.Context, *CheckHolder) (*ListReply, error) {
+func (UnimplementedMarketServer) CheckHolders(context.Context, *CheckHolder) (*Holders, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckHolders not implemented")
-}
-func (UnimplementedMarketServer) RegisterFile(context.Context, *RegisterRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterFile not implemented")
 }
 func (UnimplementedMarketServer) mustEmbedUnimplementedMarketServer() {}
 
@@ -134,6 +134,24 @@ func _Market_RequestFile_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MarketServer).RequestFile(ctx, req.(*FileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Market_RegisterFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SupplyFile)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarketServer).RegisterFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Market_RegisterFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarketServer).RegisterFile(ctx, req.(*SupplyFile))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -174,24 +192,6 @@ func _Market_CheckHolders_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Market_RegisterFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MarketServer).RegisterFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Market_RegisterFile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MarketServer).RegisterFile(ctx, req.(*RegisterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Market_ServiceDesc is the grpc.ServiceDesc for Market service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -204,16 +204,16 @@ var Market_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Market_RequestFile_Handler,
 		},
 		{
+			MethodName: "RegisterFile",
+			Handler:    _Market_RegisterFile_Handler,
+		},
+		{
 			MethodName: "CheckRequests",
 			Handler:    _Market_CheckRequests_Handler,
 		},
 		{
 			MethodName: "CheckHolders",
 			Handler:    _Market_CheckHolders_Handler,
-		},
-		{
-			MethodName: "RegisterFile",
-			Handler:    _Market_RegisterFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

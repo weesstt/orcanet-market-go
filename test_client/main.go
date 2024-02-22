@@ -59,6 +59,8 @@ func main() {
 	user := &pb.User{
 		Id:   userID,
 		Name: username,
+		Ip:  "localhost",
+		Port: 416320,
 	}
 
 	for {
@@ -90,17 +92,17 @@ func main() {
 
 		switch choice {
 		case 1:
-			fmt.Print("Enter a bid: ")
-			var bid int
-			_, err := fmt.Scanln(&bid)
+			createRequest(c, user, fileHash)
+		case 2:
+			fmt.Print("Enter a price: ")
+			var price int
+			_, err := fmt.Scanln(&price)
 			if err != nil {
 				fmt.Println("Error: ", err)
 				continue
 			}
 
-			createRequest(c, user, fileHash, bid)
-		case 2:
-			registerRequest(c, user, fileHash)
+			registerRequest(c, user, fileHash, price)
 		case 3:
 			checkRequests(c, fileHash)
 		case 4:
@@ -108,19 +110,19 @@ func main() {
 		case 5:
 			return
 		default:
-			fmt.Println("Unknown option: %v", choice)
+			fmt.Println("Unknown option: ", choice)
 		}
 
-		fmt.Println("\n\n")
+		fmt.Println()
 	}
 }
 
 // creates a request that a user with userId wants a file with fileHash
-func createRequest(c pb.MarketClient, user *pb.User, fileHash string, bid int) {
+func createRequest(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash, Bid: int32(bid)})
+	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
@@ -139,7 +141,7 @@ func checkRequests(c pb.MarketClient, fileHash string) {
 	} else {
 		for _, req := range reqs.GetRequests() {
 			user := req.GetUser()
-			log.Printf("Username: %s, Bid: %d", user.GetName(), req.GetBid())
+			log.Printf("Username: %s, Bid: %d", user.GetName())
 		}
 	}
 }
@@ -153,15 +155,18 @@ func checkHolders(c pb.MarketClient, fileHash string) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
-		log.Printf("Holders: %s", holders.GetStrings())
+		for _, holder := range holders.GetHolders() {
+			user := holder.GetUser()
+			log.Printf("Username: %s, Price: %d", user.GetName(), holder.GetPrice())
+		}
 	}
 }
 
-func registerRequest(c pb.MarketClient, user *pb.User, fileHash string) {
+func registerRequest(c pb.MarketClient, user *pb.User, fileHash string, price int) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := c.RegisterFile(ctx, &pb.RegisterRequest{User: user, FileHash: fileHash})
+	_, err := c.RegisterFile(ctx, &pb.SupplyFile{User: user, FileHash: fileHash, Price: int32(price)})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {

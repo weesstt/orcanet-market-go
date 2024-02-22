@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 
 	pb "orcanet/market"
 
@@ -38,35 +37,36 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// maps a file to a list of requests (user + bid)
+// maps file hashes to a list of requests
 var requests = make(map[string][]*pb.FileRequest)
 
-// map of files to users holding the file
-var fileHolders = make(map[string][]*pb.User)
+// map file hashes to supplied files + prices
+var files = make(map[string][]*pb.SupplyFile)
 
 // print the current requests map
 func printRequestsMap() {
-	for fileID, users := range requests {
-		fmt.Print("\nFile ID: ", fileID, "\nUsers Requesting File: \n")
+	for hash, users := range requests {
+		fmt.Printf("\nFile Hash: %s\n", hash)
 
 		for _, req := range users {
 			user := req.GetUser()
-			fmt.Println("Username: %v, Bid: %v", user.GetName(), req.GetBid())
+			fmt.Println("Username: ", user.GetName())
 		}
 	}
 }
 
 // print the current holders map
 func printHoldersMap() {
-	for fileID, holders := range fileHolders {
-		fmt.Print("\nFile ID: ", fileID, "\nUsers Holding File: \n")
-		holderNames := []string{}
+	for hash, holders := range files {
+		fmt.Printf("\nFile Hash: %s\n", hash)
+
 		for _, holder := range holders {
-			holderNames = append(holderNames, holder.GetName())
+			user := holder.GetUser()
+			fmt.Printf("Username: %s, Price: %d\n", user.GetName(), holder.GetPrice())
 		}
-		fmt.Println(strings.Join(holderNames, "\n"))
+
+		}
 	}
-}
 
 type server struct {
 	pb.UnimplementedMarketServer
@@ -87,57 +87,55 @@ func main() {
 	}
 }
 
-// Add a request that a user with userId wants file with fileId
+// Add a request that a user with userId wants file with a hash
 func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileResponse, error) {
-	fileId := in.GetFileHash()
+	hash := in.GetFileHash()
 
 	// Check if file is held by anyone; I hate Go
-	if _, ok := fileHolders[fileId]; !ok {
+	if _, ok := files[hash]; !ok {
 		return &pb.FileResponse{Exists: false, Message: "File not found"}, nil
 	}
 
-	requests[fileId] = append(requests[fileId], in)
+	requests[hash] = append(requests[hash], in)
 
 	return &pb.FileResponse{Exists: true, Message: "OK"}, nil
 }
 
-// Get a list of userIds who are requesting a file with fileId
+// Get a list of userIds who are requesting a file with a hash
 func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Requests, error) {
-	fileId := in.GetFileHash()
+	hash := in.GetFileHash()
 	printRequestsMap()
 
-	reqs := requests[fileId]
+	reqs := requests[hash]
 	return &pb.Requests{Requests: reqs}, nil
 }
 
-// CheckHolders returns a list of user names holding a file with fileId
-func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHolder) (*pb.ListReply, error) {
-	fileId := in.GetFileHash()
+// register that the a user holds a file, then add the user to the list of file holders
+func (s *server) RegisterFile(ctx context.Context, in *pb.SupplyFile) (*emptypb.Empty, error) {
+	hash := in.GetFileHash()
 
-	holders := fileHolders[fileId]
+	/* 
+		idk if we need this since many people should be able to hold the same file
 
-	holderNames := make([]string, len(holders))
-	for i, holder := range holders {
-		holderNames[i] = holder.GetName()
-	}
+		// Check if file is held by anyone, don't do anything
+		// TODO: perform blockchain transaction here
+		if _, ok := supplies[fileId]; ok {
+			return &emptypb.Empty{}, nil
+		}
 
-	printHoldersMap()
+	*/
 
-	return &pb.ListReply{Strings: holderNames}, nil
+	files[hash] = append(files[hash], in)
+	fmt.Printf("Num of registered files: %d\n", len(files[hash]))
+	return &emptypb.Empty{}, nil
 }
 
-// register that the userId holds fileId, then add the user to the list of file holders
-func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterRequest) (*emptypb.Empty, error) {
-	user := in.GetUser()
-	fileId := in.GetFileHash()
+// CheckHolders returns a list of user names holding a file with a hash
+func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHolder) (*pb.Holders, error) {
+	hash := in.GetFileHash()
 
-	// Check if file is held by anyone, don't do anything
-	// TODO: perform blockchain transaction here
-	if _, ok := fileHolders[fileId]; ok {
-		return &emptypb.Empty{}, nil
-	}
+	holders := files[hash]
+	printHoldersMap()
 
-	fileHolders[fileId] = append(fileHolders[fileId], user)
-
-	return &emptypb.Empty{}, nil
+	return &pb.Holders{Holders: holders}, nil
 }
