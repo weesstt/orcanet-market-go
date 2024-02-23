@@ -7,10 +7,12 @@ option go_package = "orcanet/market/market";
 package market;
 
 service Market {
-  rpc RequestFile (FileRequest) returns (FileResponse) {}
   rpc RegisterFile (SupplyFile) returns (google.protobuf.Empty) {}
-  rpc CheckRequests (CheckRequest) returns (Requests) {}
   rpc CheckHolders (CheckHolder) returns (Holders) {}
+  rpc RequestFile (FileRequest) returns (FileResponse) {}
+
+  // I think we can delete this
+  rpc CheckRequests (CheckRequest) returns (Requests) {}
 }
 
 

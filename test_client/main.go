@@ -59,7 +59,7 @@ func main() {
 	user := &pb.User{
 		Id:   userID,
 		Name: username,
-		Ip:  "localhost",
+		Ip:   "localhost",
 		Port: 416320,
 	}
 
@@ -130,6 +130,8 @@ func createRequest(c pb.MarketClient, user *pb.User, fileHash string) {
 	}
 }
 
+
+// I think we can delete this
 // get all users who wants a file with fileHash
 func checkRequests(c pb.MarketClient, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -141,7 +143,7 @@ func checkRequests(c pb.MarketClient, fileHash string) {
 	} else {
 		for _, req := range reqs.GetRequests() {
 			user := req.GetUser()
-			log.Printf("Username: %s, Bid: %d", user.GetName())
+			log.Printf("Username: %s", user.GetName())
 		}
 	}
 }

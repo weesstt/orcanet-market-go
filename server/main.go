@@ -37,6 +37,7 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
+// I think we can delete this
 // maps file hashes to a list of requests
 var requests = make(map[string][]*pb.FileRequest)
 
@@ -65,8 +66,8 @@ func printHoldersMap() {
 			fmt.Printf("Username: %s, Price: %d\n", user.GetName(), holder.GetPrice())
 		}
 
-		}
 	}
+}
 
 type server struct {
 	pb.UnimplementedMarketServer
@@ -87,6 +88,7 @@ func main() {
 	}
 }
 
+// I think we can modify this instead of adding to the map 
 // Add a request that a user with userId wants file with a hash
 func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileResponse, error) {
 	hash := in.GetFileHash()
@@ -101,6 +103,7 @@ func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileR
 	return &pb.FileResponse{Exists: true, Message: "OK"}, nil
 }
 
+// I think we can delete this
 // Get a list of userIds who are requesting a file with a hash
 func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Requests, error) {
 	hash := in.GetFileHash()
@@ -114,7 +117,7 @@ func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Re
 func (s *server) RegisterFile(ctx context.Context, in *pb.SupplyFile) (*emptypb.Empty, error) {
 	hash := in.GetFileHash()
 
-	/* 
+	/*
 		idk if we need this since many people should be able to hold the same file
 
 		// Check if file is held by anyone, don't do anything
