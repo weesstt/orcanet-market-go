@@ -20,11 +20,14 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
 	"log"
 	"math/rand"
+	"slices"
+	"strconv"
 	"time"
 
 	pb "orcanet/market"
@@ -55,12 +58,21 @@ func main() {
 	// Generate a random ID for new user
 	userID := fmt.Sprintf("user%d", rand.Intn(10000))
 
+	fmt.Print("Enter a price for supplying files: ")
+	var price int32
+	_, err = fmt.Scanln(&price)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+
 	// Create a User struct with the provided username and generated ID
 	user := &pb.User{
-		Id:   userID,
-		Name: username,
-		Ip:   "localhost",
-		Port: 416320,
+		Id:    userID,
+		Name:  username,
+		Ip:    "localhost",
+		Port:  416320,
+		Price: price,
 	}
 
 	for {
@@ -94,19 +106,11 @@ func main() {
 		case 1:
 			createRequest(c, user, fileHash)
 		case 2:
-			fmt.Print("Enter a price: ")
-			var price int
-			_, err := fmt.Scanln(&price)
-			if err != nil {
-				fmt.Println("Error: ", err)
-				continue
-			}
-
-			registerRequest(c, user, fileHash, price)
+			registerRequest(c, user, fileHash)
 		case 3:
 			checkRequests(c, fileHash)
 		case 4:
-			checkHolders(c, fileHash)
+			checkHolders(c, user, fileHash)
 		case 5:
 			return
 		default:
@@ -130,7 +134,6 @@ func createRequest(c pb.MarketClient, user *pb.User, fileHash string) {
 	}
 }
 
-
 // I think we can delete this
 // get all users who wants a file with fileHash
 func checkRequests(c pb.MarketClient, fileHash string) {
@@ -149,26 +152,55 @@ func checkRequests(c pb.MarketClient, fileHash string) {
 }
 
 // print all users who are holding a file with fileHash
-func checkHolders(c pb.MarketClient, fileHash string) {
+func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	holders, err := c.CheckHolders(ctx, &pb.CheckHolder{FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
-	} else {
-		for _, holder := range holders.GetHolders() {
-			user := holder.GetUser()
-			log.Printf("Username: %s, Price: %d", user.GetName(), holder.GetPrice())
-		}
+		return
 	}
+	supply_files := holders.GetHolders()
+	slices.SortFunc(supply_files, func(a, b *pb.SupplyFile) int {
+		return cmp.Compare(a.GetUser().GetPrice(), b.GetUser().GetPrice())
+	})
+	for idx, holder := range supply_files {
+		user := holder.GetUser()
+		fmt.Printf("(%d) Username: %s, Price: %d\n", idx, user.GetName(), user.GetPrice())
+	}
+
+	fmt.Println("Choose which supplier to get file from, or 'n' to cancel:")
+	var choice string
+	_, err = fmt.Scanln(&choice)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	idx, err := strconv.ParseInt(choice, 10, 32)
+	if err != nil {
+		return
+	}
+	if idx < 0 || int(idx) > len(supply_files) {
+		fmt.Println("Invalid index chosen")
+		return
+	}
+	fmt.Printf("%v chosen, requesting file\n", idx)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash})
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	} else {
+		log.Printf("Result: %t, %s", r.GetExists(), r.GetMessage())
+	}
+
 }
 
-func registerRequest(c pb.MarketClient, user *pb.User, fileHash string, price int) {
+func registerRequest(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := c.RegisterFile(ctx, &pb.SupplyFile{User: user, FileHash: fileHash, Price: int32(price)})
+	_, err := c.RegisterFile(ctx, &pb.SupplyFile{User: user, FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {

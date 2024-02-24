@@ -63,7 +63,7 @@ func printHoldersMap() {
 
 		for _, holder := range holders {
 			user := holder.GetUser()
-			fmt.Printf("Username: %s, Price: %d\n", user.GetName(), holder.GetPrice())
+			fmt.Printf("Username: %s, Price: %d\n", user.GetName(), user.GetPrice())
 		}
 
 	}
