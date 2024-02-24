@@ -20,154 +20,21 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// A message that contains the arguments to make a request to retrieve a file.
-type MarketRequestArgs struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// The number of OrcaCoins to offer for the transaction
-	Bid float32 `protobuf:"fixed32,1,opt,name=bid,proto3" json:"bid,omitempty"`
-	// The file digest of the file that is desired.
-	FileDigest string `protobuf:"bytes,2,opt,name=fileDigest,proto3" json:"fileDigest,omitempty"`
-}
-
-func (x *MarketRequestArgs) Reset() {
-	*x = MarketRequestArgs{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_market_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MarketRequestArgs) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarketRequestArgs) ProtoMessage() {}
-
-func (x *MarketRequestArgs) ProtoReflect() protoreflect.Message {
-	mi := &file_market_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarketRequestArgs.ProtoReflect.Descriptor instead.
-func (*MarketRequestArgs) Descriptor() ([]byte, []int) {
-	return file_market_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *MarketRequestArgs) GetBid() float32 {
-	if x != nil {
-		return x.Bid
-	}
-	return 0
-}
-
-func (x *MarketRequestArgs) GetFileDigest() string {
-	if x != nil {
-		return x.FileDigest
-	}
-	return ""
-}
-
-// A message that contains the information of a specific market file request. Returned by the ConsumerRetrieveRequest rpc.
-type MarketRequestInfo struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// The number of OrcaCoins offered for the transaction.
-	Bid float32 `protobuf:"fixed32,1,opt,name=bid,proto3" json:"bid,omitempty"`
-	// The file digest of the file requested for the transaction.
-	FileDigest string `protobuf:"bytes,2,opt,name=fileDigest,proto3" json:"fileDigest,omitempty"`
-	// The UUID associated with the transaction.
-	Uuid string `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	// The public key of the consumer requesting the file.
-	PubKey string `protobuf:"bytes,4,opt,name=pubKey,proto3" json:"pubKey,omitempty"`
-}
-
-func (x *MarketRequestInfo) Reset() {
-	*x = MarketRequestInfo{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_market_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MarketRequestInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarketRequestInfo) ProtoMessage() {}
-
-func (x *MarketRequestInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_market_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarketRequestInfo.ProtoReflect.Descriptor instead.
-func (*MarketRequestInfo) Descriptor() ([]byte, []int) {
-	return file_market_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *MarketRequestInfo) GetBid() float32 {
-	if x != nil {
-		return x.Bid
-	}
-	return 0
-}
-
-func (x *MarketRequestInfo) GetFileDigest() string {
-	if x != nil {
-		return x.FileDigest
-	}
-	return ""
-}
-
-func (x *MarketRequestInfo) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
-func (x *MarketRequestInfo) GetPubKey() string {
-	if x != nil {
-		return x.PubKey
-	}
-	return ""
-}
-
-// A message that contains the arguments to query the server to see bids for a specific file.
+// A message that contains the arguments to query the server to see asks for specific data retrieval.
 type MarketQueryArgs struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The digest of the file to query for requests.
-	FileDigest string `protobuf:"bytes,1,opt,name=fileDigest,proto3" json:"fileDigest,omitempty"`
+	// Hash or URL of data being requested
+	Identifier    string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	ConsumerPubIP string `protobuf:"bytes,2,opt,name=consumerPubIP,proto3" json:"consumerPubIP,omitempty"` //Optional: only required when calling producer market query.
 }
 
 func (x *MarketQueryArgs) Reset() {
 	*x = MarketQueryArgs{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_market_proto_msgTypes[2]
+		mi := &file_market_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -180,7 +47,7 @@ func (x *MarketQueryArgs) String() string {
 func (*MarketQueryArgs) ProtoMessage() {}
 
 func (x *MarketQueryArgs) ProtoReflect() protoreflect.Message {
-	mi := &file_market_proto_msgTypes[2]
+	mi := &file_market_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,28 +60,139 @@ func (x *MarketQueryArgs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarketQueryArgs.ProtoReflect.Descriptor instead.
 func (*MarketQueryArgs) Descriptor() ([]byte, []int) {
-	return file_market_proto_rawDescGZIP(), []int{2}
+	return file_market_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *MarketQueryArgs) GetFileDigest() string {
+func (x *MarketQueryArgs) GetIdentifier() string {
 	if x != nil {
-		return x.FileDigest
+		return x.Identifier
 	}
 	return ""
 }
 
-// A message that contains the list of market requests. Returned by the ProducerQuery rpc.
-type MarketQueryList struct {
+func (x *MarketQueryArgs) GetConsumerPubIP() string {
+	if x != nil {
+		return x.ConsumerPubIP
+	}
+	return ""
+}
+
+// A message that contains the list of market asks. Returned by the MarketQuery RPC.
+type MarketQueries struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// A list of market requests.
-	Requests []*MarketRequestInfo `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
+	// A list of market ask messages
+	Offers []*MarketAsk `protobuf:"bytes,1,rep,name=offers,proto3" json:"offers,omitempty"`
 }
 
-func (x *MarketQueryList) Reset() {
-	*x = MarketQueryList{}
+func (x *MarketQueries) Reset() {
+	*x = MarketQueries{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_market_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MarketQueries) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarketQueries) ProtoMessage() {}
+
+func (x *MarketQueries) ProtoReflect() protoreflect.Message {
+	mi := &file_market_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarketQueries.ProtoReflect.Descriptor instead.
+func (*MarketQueries) Descriptor() ([]byte, []int) {
+	return file_market_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *MarketQueries) GetOffers() []*MarketAsk {
+	if x != nil {
+		return x.Offers
+	}
+	return nil
+}
+
+// A message that contains the arguments to register a market ask by a producer.
+type MarketAskArgs struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Hash or URL of the data being requested
+	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+}
+
+func (x *MarketAskArgs) Reset() {
+	*x = MarketAskArgs{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_market_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MarketAskArgs) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarketAskArgs) ProtoMessage() {}
+
+func (x *MarketAskArgs) ProtoReflect() protoreflect.Message {
+	mi := &file_market_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarketAskArgs.ProtoReflect.Descriptor instead.
+func (*MarketAskArgs) Descriptor() ([]byte, []int) {
+	return file_market_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MarketAskArgs) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+// A message that resembles a market ask for data retrieval from a specific producer.
+type MarketAsk struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The asking number of OrcaCoins
+	Bid float32 `protobuf:"fixed32,1,opt,name=bid,proto3" json:"bid,omitempty"`
+	// The hash/URL of the data that the producer holds
+	Identifier string `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	// Public IP of producer holding data
+	ProducerPubIP string `protobuf:"bytes,3,opt,name=producerPubIP,proto3" json:"producerPubIP,omitempty"`
+	// Public IP of the consumer requesting data: Optional, only used for InitiateMarketTransaction
+	ConsumerPubIP string `protobuf:"bytes,4,opt,name=consumerPubIP,proto3" json:"consumerPubIP,omitempty"`
+}
+
+func (x *MarketAsk) Reset() {
+	*x = MarketAsk{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_market_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -222,13 +200,13 @@ func (x *MarketQueryList) Reset() {
 	}
 }
 
-func (x *MarketQueryList) String() string {
+func (x *MarketAsk) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MarketQueryList) ProtoMessage() {}
+func (*MarketAsk) ProtoMessage() {}
 
-func (x *MarketQueryList) ProtoReflect() protoreflect.Message {
+func (x *MarketAsk) ProtoReflect() protoreflect.Message {
 	mi := &file_market_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -240,53 +218,202 @@ func (x *MarketQueryList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MarketQueryList.ProtoReflect.Descriptor instead.
-func (*MarketQueryList) Descriptor() ([]byte, []int) {
+// Deprecated: Use MarketAsk.ProtoReflect.Descriptor instead.
+func (*MarketAsk) Descriptor() ([]byte, []int) {
 	return file_market_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *MarketQueryList) GetRequests() []*MarketRequestInfo {
+func (x *MarketAsk) GetBid() float32 {
 	if x != nil {
-		return x.Requests
+		return x.Bid
 	}
-	return nil
+	return 0
+}
+
+func (x *MarketAsk) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+func (x *MarketAsk) GetProducerPubIP() string {
+	if x != nil {
+		return x.ProducerPubIP
+	}
+	return ""
+}
+
+func (x *MarketAsk) GetConsumerPubIP() string {
+	if x != nil {
+		return x.ConsumerPubIP
+	}
+	return ""
+}
+
+// A message that contains the URL of the web server exposed by producer so consumer can download data.
+type MarketDataTransfer struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The URL of the web server
+	URL string `protobuf:"bytes,1,opt,name=URL,proto3" json:"URL,omitempty"`
+	// The hash/url of the data
+	Identifier string `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+}
+
+func (x *MarketDataTransfer) Reset() {
+	*x = MarketDataTransfer{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_market_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MarketDataTransfer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarketDataTransfer) ProtoMessage() {}
+
+func (x *MarketDataTransfer) ProtoReflect() protoreflect.Message {
+	mi := &file_market_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarketDataTransfer.ProtoReflect.Descriptor instead.
+func (*MarketDataTransfer) Descriptor() ([]byte, []int) {
+	return file_market_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *MarketDataTransfer) GetURL() string {
+	if x != nil {
+		return x.URL
+	}
+	return ""
+}
+
+func (x *MarketDataTransfer) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+// A message returned when finalizing a transaction that contains the transaction ID from the blockchain.
+type Receipt struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Transaction ID from consumer
+	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+}
+
+func (x *Receipt) Reset() {
+	*x = Receipt{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_market_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Receipt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Receipt) ProtoMessage() {}
+
+func (x *Receipt) ProtoReflect() protoreflect.Message {
+	mi := &file_market_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Receipt.ProtoReflect.Descriptor instead.
+func (*Receipt) Descriptor() ([]byte, []int) {
+	return file_market_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Receipt) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
 }
 
 var File_market_proto protoreflect.FileDescriptor
 
 var file_market_proto_rawDesc = []byte{
-	0x0a, 0x0c, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x45,
-	0x0a, 0x11, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x41,
-	0x72, 0x67, 0x73, 0x12, 0x10, 0x0a, 0x03, 0x62, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02,
-	0x52, 0x03, 0x62, 0x69, 0x64, 0x12, 0x1e, 0x0a, 0x0a, 0x66, 0x69, 0x6c, 0x65, 0x44, 0x69, 0x67,
-	0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x66, 0x69, 0x6c, 0x65, 0x44,
-	0x69, 0x67, 0x65, 0x73, 0x74, 0x22, 0x71, 0x0a, 0x11, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x10, 0x0a, 0x03, 0x62, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x52, 0x03, 0x62, 0x69, 0x64, 0x12, 0x1e, 0x0a, 0x0a,
-	0x66, 0x69, 0x6c, 0x65, 0x44, 0x69, 0x67, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0a, 0x66, 0x69, 0x6c, 0x65, 0x44, 0x69, 0x67, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04,
-	0x75, 0x75, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x75, 0x75, 0x69, 0x64,
-	0x12, 0x16, 0x0a, 0x06, 0x70, 0x75, 0x62, 0x4b, 0x65, 0x79, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x70, 0x75, 0x62, 0x4b, 0x65, 0x79, 0x22, 0x31, 0x0a, 0x0f, 0x4d, 0x61, 0x72, 0x6b,
-	0x65, 0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x72, 0x67, 0x73, 0x12, 0x1e, 0x0a, 0x0a, 0x66,
-	0x69, 0x6c, 0x65, 0x44, 0x69, 0x67, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x0a, 0x66, 0x69, 0x6c, 0x65, 0x44, 0x69, 0x67, 0x65, 0x73, 0x74, 0x22, 0x41, 0x0a, 0x0f, 0x4d,
-	0x61, 0x72, 0x6b, 0x65, 0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x2e,
-	0x0a, 0x08, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x12, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x49, 0x6e, 0x66, 0x6f, 0x52, 0x08, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x32, 0x84,
-	0x01, 0x0a, 0x06, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x12, 0x43, 0x0a, 0x17, 0x43, 0x6f, 0x6e,
-	0x73, 0x75, 0x6d, 0x65, 0x72, 0x52, 0x65, 0x74, 0x72, 0x69, 0x65, 0x76, 0x65, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x41, 0x72, 0x67, 0x73, 0x1a, 0x12, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65,
-	0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x22, 0x00, 0x12, 0x35,
-	0x0a, 0x0d, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12,
-	0x10, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x72, 0x67,
-	0x73, 0x1a, 0x10, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x4c,
-	0x69, 0x73, 0x74, 0x22, 0x00, 0x42, 0x24, 0x5a, 0x22, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x77, 0x65, 0x65, 0x73, 0x73, 0x74, 0x74, 0x2f, 0x73, 0x74, 0x61, 0x72,
-	0x66, 0x69, 0x73, 0x68, 0x2d, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x0a, 0x0c, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x57,
+	0x0a, 0x0f, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x72, 0x67,
+	0x73, 0x12, 0x1e, 0x0a, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65,
+	0x72, 0x12, 0x24, 0x0a, 0x0d, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x50, 0x75, 0x62,
+	0x49, 0x50, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d,
+	0x65, 0x72, 0x50, 0x75, 0x62, 0x49, 0x50, 0x22, 0x33, 0x0a, 0x0d, 0x4d, 0x61, 0x72, 0x6b, 0x65,
+	0x74, 0x51, 0x75, 0x65, 0x72, 0x69, 0x65, 0x73, 0x12, 0x22, 0x0a, 0x06, 0x6f, 0x66, 0x66, 0x65,
+	0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65,
+	0x74, 0x41, 0x73, 0x6b, 0x52, 0x06, 0x6f, 0x66, 0x66, 0x65, 0x72, 0x73, 0x22, 0x2f, 0x0a, 0x0d,
+	0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x41, 0x72, 0x67, 0x73, 0x12, 0x1e, 0x0a,
+	0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x22, 0x89, 0x01,
+	0x0a, 0x09, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x12, 0x10, 0x0a, 0x03, 0x62,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x52, 0x03, 0x62, 0x69, 0x64, 0x12, 0x1e, 0x0a,
+	0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x12, 0x24, 0x0a,
+	0x0d, 0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x50, 0x75, 0x62, 0x49, 0x50, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x50, 0x75,
+	0x62, 0x49, 0x50, 0x12, 0x24, 0x0a, 0x0d, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x50,
+	0x75, 0x62, 0x49, 0x50, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x63, 0x6f, 0x6e, 0x73,
+	0x75, 0x6d, 0x65, 0x72, 0x50, 0x75, 0x62, 0x49, 0x50, 0x22, 0x46, 0x0a, 0x12, 0x4d, 0x61, 0x72,
+	0x6b, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x12,
+	0x10, 0x0a, 0x03, 0x55, 0x52, 0x4c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x55, 0x52,
+	0x4c, 0x12, 0x1e, 0x0a, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65,
+	0x72, 0x22, 0x29, 0x0a, 0x07, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x12, 0x1e, 0x0a, 0x0a,
+	0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0a, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x66, 0x69, 0x65, 0x72, 0x32, 0xd3, 0x02, 0x0a,
+	0x06, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x12, 0x31, 0x0a, 0x0b, 0x4d, 0x61, 0x72, 0x6b, 0x65,
+	0x74, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x10, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x41, 0x72, 0x67, 0x73, 0x1a, 0x0e, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65,
+	0x74, 0x51, 0x75, 0x65, 0x72, 0x69, 0x65, 0x73, 0x22, 0x00, 0x12, 0x31, 0x0a, 0x11, 0x52, 0x65,
+	0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x12,
+	0x0e, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x41, 0x72, 0x67, 0x73, 0x1a,
+	0x0a, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x22, 0x00, 0x12, 0x3e, 0x0a,
+	0x19, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x54,
+	0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x0a, 0x2e, 0x4d, 0x61, 0x72,
+	0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x1a, 0x13, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x44,
+	0x61, 0x74, 0x61, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x22, 0x00, 0x12, 0x39, 0x0a,
+	0x13, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x12, 0x10, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51, 0x75, 0x65,
+	0x72, 0x79, 0x41, 0x72, 0x67, 0x73, 0x1a, 0x0e, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x51,
+	0x75, 0x65, 0x72, 0x69, 0x65, 0x73, 0x22, 0x00, 0x12, 0x33, 0x0a, 0x19, 0x50, 0x72, 0x6f, 0x64,
+	0x75, 0x63, 0x65, 0x72, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x0a, 0x2e, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x41, 0x73,
+	0x6b, 0x1a, 0x08, 0x2e, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x22, 0x00, 0x12, 0x33, 0x0a,
+	0x19, 0x46, 0x69, 0x6e, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x54,
+	0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x0a, 0x2e, 0x4d, 0x61, 0x72,
+	0x6b, 0x65, 0x74, 0x41, 0x73, 0x6b, 0x1a, 0x08, 0x2e, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74,
+	0x22, 0x00, 0x42, 0x24, 0x5a, 0x22, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
+	0x2f, 0x77, 0x65, 0x65, 0x73, 0x73, 0x74, 0x74, 0x2f, 0x73, 0x74, 0x61, 0x72, 0x66, 0x69, 0x73,
+	0x68, 0x2d, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -301,21 +428,31 @@ func file_market_proto_rawDescGZIP() []byte {
 	return file_market_proto_rawDescData
 }
 
-var file_market_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_market_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_market_proto_goTypes = []interface{}{
-	(*MarketRequestArgs)(nil), // 0: MarketRequestArgs
-	(*MarketRequestInfo)(nil), // 1: MarketRequestInfo
-	(*MarketQueryArgs)(nil),   // 2: MarketQueryArgs
-	(*MarketQueryList)(nil),   // 3: MarketQueryList
+	(*MarketQueryArgs)(nil),    // 0: MarketQueryArgs
+	(*MarketQueries)(nil),      // 1: MarketQueries
+	(*MarketAskArgs)(nil),      // 2: MarketAskArgs
+	(*MarketAsk)(nil),          // 3: MarketAsk
+	(*MarketDataTransfer)(nil), // 4: MarketDataTransfer
+	(*Receipt)(nil),            // 5: Receipt
 }
 var file_market_proto_depIdxs = []int32{
-	1, // 0: MarketQueryList.requests:type_name -> MarketRequestInfo
-	0, // 1: Market.ConsumerRetrieveRequest:input_type -> MarketRequestArgs
-	2, // 2: Market.ProducerQuery:input_type -> MarketQueryArgs
-	1, // 3: Market.ConsumerRetrieveRequest:output_type -> MarketRequestInfo
-	3, // 4: Market.ProducerQuery:output_type -> MarketQueryList
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	3, // 0: MarketQueries.offers:type_name -> MarketAsk
+	0, // 1: Market.MarketQuery:input_type -> MarketQueryArgs
+	2, // 2: Market.RegisterMarketAsk:input_type -> MarketAskArgs
+	3, // 3: Market.InitiateMarketTransaction:input_type -> MarketAsk
+	0, // 4: Market.ProducerMarketQuery:input_type -> MarketQueryArgs
+	3, // 5: Market.ProducerAcceptTransaction:input_type -> MarketAsk
+	3, // 6: Market.FinalizeMarketTransaction:input_type -> MarketAsk
+	1, // 7: Market.MarketQuery:output_type -> MarketQueries
+	3, // 8: Market.RegisterMarketAsk:output_type -> MarketAsk
+	4, // 9: Market.InitiateMarketTransaction:output_type -> MarketDataTransfer
+	1, // 10: Market.ProducerMarketQuery:output_type -> MarketQueries
+	5, // 11: Market.ProducerAcceptTransaction:output_type -> Receipt
+	5, // 12: Market.FinalizeMarketTransaction:output_type -> Receipt
+	7, // [7:13] is the sub-list for method output_type
+	1, // [1:7] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -328,30 +465,6 @@ func file_market_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_market_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MarketRequestArgs); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_market_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MarketRequestInfo); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_market_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MarketQueryArgs); i {
 			case 0:
 				return &v.state
@@ -363,8 +476,56 @@ func file_market_proto_init() {
 				return nil
 			}
 		}
+		file_market_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MarketQueries); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_market_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MarketAskArgs); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 		file_market_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MarketQueryList); i {
+			switch v := v.(*MarketAsk); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_market_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MarketDataTransfer); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_market_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Receipt); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -382,7 +543,7 @@ func file_market_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_market_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

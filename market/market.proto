@@ -3,52 +3,90 @@ syntax = "proto3";
 option go_package = "github.com/weesstt/starfish-market";
 
 service Market {
-    //A simple RPC to make a request to the server to retrieve a file.
-    //Message MarketRequestArgs contains the information for the request.
-    //Message MarketRequestInfo is returned to indicate that the request was received and contains information
-    //about the request such as the bid, the file digest, the uuid of the transaction, and the public key of the requesting person.
-    rpc ConsumerRetrieveRequest(MarketRequestArgs) returns (MarketRequestInfo) {}
+    //A simple RPC method to query the server for the current producer asks for specific data
+    //This method takes a MarketQueryArgs message which will contain the hash/URL of the data being queried.
+    //Returns message MarketQueries which contains an array of MarketAsk messages that represent current producer asks.
+    rpc MarketQuery(MarketQueryArgs) returns (MarketQueries) {}
 
-    //A simple RPC to make a query to the market for a specific file. 
-    //Message MarketQueryArgs contains the specific file digest to query. 
-    //Message MarketQueryList contains an 'array' of MarketRequestInfo messages which are the current requests.
-    rpc ProducerQuery(MarketQueryArgs) returns (MarketQueryList) {}
+    //A simple RPC method to register a producers ask for specific data retrieval.
+    //Returns a MarketAsk message to confirm details of producers ask transaction.
+    rpc RegisterMarketAsk(MarketAskArgs) returns (MarketAsk) {}
+
+    //A simple RPC method for a consumer to initiate a transaction with a producer
+    //This method takes a MarketAsk message from the client to figure out which producer holds data.
+    //The client will then hang until the transaction is accepted by a producer and a MarketDataTransfer message
+    //is returned or an error is caused by a timeout. This MarketAsk message must contain the consumer's public IP. 
+    //Returns a MarketDataTransfer message which will contain the URL of the web server exposed on producer side so consumer can download data.
+    rpc InitiateMarketTransaction(MarketAsk) returns (MarketDataTransfer) {}
+
+    //A simple RPC method for a producer to see which consumers want to receive certain data. 
+    //This method takes a MarketQueryArgs message to indicate which data they want to see consumer requests for. 
+    //Returns a MarketQueries message. 
+    rpc ProducerMarketQuery(MarketQueryArgs) returns (MarketQueries) {}
+
+    //A simple RPC method to accept an incoming request for specific data. 
+    //This method takes a MarketAsk message from the producer to identify the correct transaction. 
+    //A web server will be exposed by the producer to server data. This method will hang until the server
+    //receives a FinalizeMarketTransaction gRPC request by the consumer which will then be forwarded to the producer. 
+    //or an error will occur because of a timeout. 
+    //Returns a Receipt message with transaction ID from the consumer. 
+    rpc ProducerAcceptTransaction(MarketAsk) returns (Receipt) {}
+
+    //A simple RPC method to finalize a transaction between a producer and a consumer. 
+    //TODO: Connect whenever OrcaNet blockchain running
+    //This method takes a MarketAsk message pretaining to the transaction to finalize, then will eventually 
+    //initiate the transaction on the blockchain when it is running. 
+    //Returns a Receipt message which will contain the hash of the transaction ID on the blockchain.
+    rpc FinalizeMarketTransaction(MarketAsk) returns (Receipt) {} 
+
 }
 
-//A message that contains the arguments to make a request to retrieve a file. 
-message MarketRequestArgs {
-    //The number of OrcaCoins to offer for the transaction
-    float bid = 1;
-
-    //The file digest of the file that is desired.
-    string fileDigest = 2;
-}
-
-//A message that contains the information of a specific market file request. Returned by the ConsumerRetrieveRequest rpc.
-message MarketRequestInfo {
-    //The number of OrcaCoins offered for the transaction.
-    float bid = 1;
-    
-    //The file digest of the file requested for the transaction.
-    string fileDigest = 2;
-
-    //The UUID associated with the transaction.
-    string uuid = 3;
-
-    //The public key of the consumer requesting the file. 
-    string pubKey = 4;
-}
-
-//A message that contains the arguments to query the server to see bids for a specific file. 
+//A message that contains the arguments to query the server to see asks for specific data retrieval. 
 message MarketQueryArgs {
-    //The digest of the file to query for requests. 
-    string fileDigest = 1;
+    //Hash or URL of data being requested
+    string identifier = 1; 
+
+    string consumerPubIP = 2; //Optional: only required when calling producer market query. 
 }
 
-//A message that contains the list of market requests. Returned by the ProducerQuery rpc. 
-message MarketQueryList {
-    //A list of market requests.
-    repeated MarketRequestInfo requests = 1;
+//A message that contains the list of market asks. Returned by the MarketQuery RPC. 
+message MarketQueries {
+    //A list of market ask messages
+    repeated MarketAsk offers = 1;
 }
 
+//A message that contains the arguments to register a market ask by a producer.
+message MarketAskArgs { 
+    //Hash or URL of the data being requested
+    string identifier = 1; 
+}
 
+//A message that resembles a market ask for data retrieval from a specific producer. 
+message MarketAsk {
+    //The asking number of OrcaCoins 
+    float bid = 1;
+
+    //The hash/URL of the data that the producer holds 
+    string identifier = 2;
+
+    //Public IP of producer holding data
+    string producerPubIP = 3; 
+
+    //Public IP of the consumer requesting data: Optional, only used for InitiateMarketTransaction
+    string consumerPubIP = 4; 
+}
+
+//A message that contains the URL of the web server exposed by producer so consumer can download data.
+message MarketDataTransfer {
+    //The URL of the web server
+    string URL = 1;
+    
+    //The hash/url of the data
+    string identifier = 2;
+}
+
+//A message returned when finalizing a transaction that contains the transaction ID from the blockchain.
+message Receipt {
+    //Transaction ID from consumer
+    string identifier = 1;
+}

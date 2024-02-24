@@ -1,37 +1,42 @@
 # OrcaNet Market Server 
 This is a simple market server implemented in Go using gRPC.
-Given that this is a prototype that will be implemented later with the blockchain, there is no
-concept of a "user account". Instead, each consumer can input the hash digest of the file they want to request and their bid to retrieve said file. Whenever a bid is placed on a file, a UUID is created to identify said transation. The UUID is generated using the Go UUID Module and is guarenteed to be unique across space and time. Producers can then query the table to see if there are currently any bids for a certain hash digest that they may hold. 
+Each consumer can input the hash digest of the data they want to request and see which producers are holding their file and what their asking transfer price is. Producers can see incoming requests for data they hold and choose to serve certain consumer requests. This prototype runs under the assumption that each producer/consumer has their own public IP address which will change in later versions. 
+
+# System Flow
+Assume that a producer has already been provided with data that a consumer has requested be stored
+on the network. A producer first registers with the market the specific data that they have 
+and their asking price for consumers to retrieve the data. A consumer can then query the market and see which
+producers are holding specific data and their asking price. A consumer can call the InitiateMarketTransaction
+gRPC method on the market server to start a request for specific data. The InitiateMarketTransaction method
+will not return a MarketDataTransfer message until a producer agrees to serve the data or an error
+occurs because of a timeout. While the consumer is waiting for a return from the server, a producer
+will call the ProducerMarketQuery gRPC method to see which consumers want specific data. A producer can
+call the ProducerAcceptTransaction method to accept to serve data to a consumer. The ProducerAcceptTransaction will not return a value until a FinalizeMarketTransaction gRPC call is made by the consumer indicating the end of a transaction or there is a timeout. When the ProducerAcceptTransaction method is received by the server, a MarketDataTransfer message will be returned to the consumer by the InitiateMarketTransaction method. At which time the consumer should send the transaction to the OrcaNet blockchain then call the FinalizeMarketTransaction with the transaction ID on the blockchain.
 
 ## TODO 
-- Set up functionality for consumer to specify public key to identify themselves when requesting a file.
-- Set up a gRPC service to initiate a file transfer on behalf of the producer and consumers whenever a producer wants to accept a transaction. 
+- Producer: Implement a CLI with the following options
+    1) Register market ask (Calls RegisterMarketAsk on market server).
+    2) List the incoming requests for specific data. 
+    3) Accept a certain incoming request for specific data.
+- Consumer: Implement a CLI with the following options
+    1) Initiate Market Transaction to indicate to a specific producer data is being requested.
+    2) Finalize Market Transaction once data is received by consumer and a transaction was done on the blockchain.
+- Server 
+    1) rpc MarketQuery(MarketQueryArgs) returns (MarketQueries) {}
+    2) rpc RegisterMarketAsk(MarketAskArgs) returns (MarketAsk) {}
+    3) rpc InitiateMarketTransaction(MarketAsk) returns (MarketDataTransfer) {}
+    4) rpc ProducerMarketQuery(MarketQueryArgs) returns (MarketQueries)
+    5) rpc ProducerAcceptTransaction(MarketAsk) returns (Receipt) {}
+    6) rpc FinalizeMarketTransaction(MarketAsk) returns (Receipt) {} 
 
-## Needed Clarifications
-This build assumes that multiple, unique people can place bids on the same file and producers can choose which person they ultimately want to serve. Since only the file digest is needed to identify a transaction, anyone with the file digest can request anyone elses file. Is this behavior correct? 
+### Long Term
+- Abstract away notion of single file transfer to be a stream of data. 
+- Change process of consumer sending payment once file is received to sending payment for bytes received.
+- Connect to blockchain to actually process payments when transactions are being done. 
 
 ## Important Best Practices!
 gRPC Protocol Buffers can not have repeated field numbers! When removing a field number either by using a different number or removing a field entirely, add a reserved statement to the message with the field number
 so that it cannot be reused. Other protobuf coding best practices can be found [here](https://protobuf.dev/programming-guides/dos-donts/).
-
-## Usage
-Server
-```bash
-$ cd market/
-$ go run server/server.go
-```
-
-Consumer
-```bash
-$ cd market/
-$ go run consumer/Consumer.go
-```
-
-Producer
-```bash
-$ cd market/
-$ go run producer/producer.go
-```
 
 ## Prerequisites
 + Go [(Installation 📎)](https://go.dev/doc/install)
@@ -51,54 +56,21 @@ protoc --go_out=. --go_opt=paths=source_relative \
 ```
 - Must be done every time there is an update to the market.proto file to correctly access stubs within Go.
 
-## RPC Documentation 
-```protobuf
-service Market {
-    //A simple RPC to make a request to the server to retrieve a file.
-    //Message MarketRequestArgs contains the information for the request.
-    //Message MarketRequestInfo is returned to indicate that the request was received and contains information
-    //about the request such as the bid, the file digest, the uuid of the transaction, and the public key of the requesting person.
-    rpc ConsumerRetrieveRequest(MarketRequestArgs) returns (MarketRequestInfo) {}
+## Usage
+Server
+```bash
+$ cd market/
+$ go run server/server.go
+```
 
-    //A simple RPC to make a query to the market for a specific file. 
-    //Message MarketQueryArgs contains the specific file digest to query. 
-    //Message MarketQueryList contains an 'array' of MarketRequestInfo messages which are the current requests.
-    rpc ProducerQuery(MarketQueryArgs) returns (MarketQueryList) {}
-}
+Consumer
+```bash
+$ cd market/
+$ go run consumer/Consumer.go
+```
 
-//A message that contains the arguments to make a request to retrieve a file. 
-message MarketRequestArgs {
-    //The number of OrcaCoins to offer for the transaction
-    float bid = 1;
-
-    //The file digest of the file that is desired.
-    string fileDigest = 2;
-}
-
-//A message that contains the information of a specific market file request. Returned by the ConsumerRetrieveRequest rpc.
-message MarketRequestInfo {
-    //The number of OrcaCoins offered for the transaction.
-    float bid = 1;
-    
-    //The file digest of the file requested for the transaction.
-    string fileDigest = 2;
-
-    //The UUID associated with the transaction.
-    string uuid = 3;
-
-    //The public key of the consumer requesting the file. 
-    string pubKey = 4;
-}
-
-//A message that contains the arguments to query the server to see bids for a specific file. 
-message MarketQueryArgs {
-    //The digest of the file to query for requests. 
-    string fileDigest = 1;
-}
-
-//A message that contains the list of market requests. Returned by the ProducerQuery rpc. 
-message MarketQueryList {
-    //A list of market requests.
-    repeated MarketRequestInfo requests = 1;
-}
+Producer
+```bash
+$ cd market/
+$ go run producer/producer.go
 ```
