@@ -5,8 +5,8 @@ option go_package = "github.com/weesstt/starfish-market";
 service Market {
     //A simple RPC method to query the server for the current producer asks for specific data
     //This method takes a MarketQueryArgs message which will contain the hash/URL of the data being queried.
-    //Returns message MarketQueries which contains an array of MarketAsk messages that represent current producer asks.
-    rpc MarketQuery(MarketQueryArgs) returns (MarketQueries) {}
+    //Returns message MarketQuery which contains an array of MarketAsk messages that represent current producer asks.
+    rpc ConsumerMarketQuery(MarketQueryArgs) returns (MarketQuery) {}
 
     //A simple RPC method to register a producers ask for specific data retrieval.
     //Returns a MarketAsk message to confirm details of producers ask transaction.
@@ -21,8 +21,8 @@ service Market {
 
     //A simple RPC method for a producer to see which consumers want to receive certain data. 
     //This method takes a MarketQueryArgs message to indicate which data they want to see consumer requests for. 
-    //Returns a MarketQueries message. 
-    rpc ProducerMarketQuery(MarketQueryArgs) returns (MarketQueries) {}
+    //Returns a MarketQuery message. 
+    rpc ProducerMarketQuery(MarketQueryArgs) returns (MarketQuery) {}
 
     //A simple RPC method to accept an incoming request for specific data. 
     //This method takes a MarketAsk message from the producer to identify the correct transaction. 
@@ -32,10 +32,10 @@ service Market {
     //Returns a Receipt message with transaction ID from the consumer. 
     rpc ProducerAcceptTransaction(MarketAsk) returns (Receipt) {}
 
-    //A simple RPC method to finalize a transaction between a producer and a consumer. 
+    //A simple RPC method to finalize a transaction between a producer and a consumer. Should be called by consumer when payment is sent
     //TODO: Connect whenever OrcaNet blockchain running
-    //This method takes a MarketAsk message pretaining to the transaction to finalize, then will eventually 
-    //initiate the transaction on the blockchain when it is running. 
+    //This method takes a MarketAsk message pretaining to the transaction to finalize, the consumer
+    //must add the transaction id on the blockchain to the context of the gRPC call.
     //Returns a Receipt message which will contain the hash of the transaction ID on the blockchain.
     rpc FinalizeMarketTransaction(MarketAsk) returns (Receipt) {} 
 
@@ -45,12 +45,10 @@ service Market {
 message MarketQueryArgs {
     //Hash or URL of data being requested
     string identifier = 1; 
-
-    string consumerPubIP = 2; //Optional: only required when calling producer market query. 
 }
 
-//A message that contains the list of market asks. Returned by the MarketQuery RPC. 
-message MarketQueries {
+//A message that contains the list of market asks.
+message MarketQuery {
     //A list of market ask messages
     repeated MarketAsk offers = 1;
 }
@@ -59,6 +57,9 @@ message MarketQueries {
 message MarketAskArgs { 
     //Hash or URL of the data being requested
     string identifier = 1; 
+
+    //The asking number of OrcaCoins
+    float bid = 2;
 }
 
 //A message that resembles a market ask for data retrieval from a specific producer. 

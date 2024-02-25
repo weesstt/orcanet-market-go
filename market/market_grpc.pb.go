@@ -24,8 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type MarketClient interface {
 	// A simple RPC method to query the server for the current producer asks for specific data
 	// This method takes a MarketQueryArgs message which will contain the hash/URL of the data being queried.
-	// Returns message MarketQueries which contains an array of MarketAsk messages that represent current producer asks.
-	MarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQueries, error)
+	// Returns message MarketQuery which contains an array of MarketAsk messages that represent current producer asks.
+	ConsumerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQuery, error)
 	// A simple RPC method to register a producers ask for specific data retrieval.
 	// Returns a MarketAsk message to confirm details of producers ask transaction.
 	RegisterMarketAsk(ctx context.Context, in *MarketAskArgs, opts ...grpc.CallOption) (*MarketAsk, error)
@@ -37,8 +37,8 @@ type MarketClient interface {
 	InitiateMarketTransaction(ctx context.Context, in *MarketAsk, opts ...grpc.CallOption) (*MarketDataTransfer, error)
 	// A simple RPC method for a producer to see which consumers want to receive certain data.
 	// This method takes a MarketQueryArgs message to indicate which data they want to see consumer requests for.
-	// Returns a MarketQueries message.
-	ProducerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQueries, error)
+	// Returns a MarketQuery message.
+	ProducerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQuery, error)
 	// A simple RPC method to accept an incoming request for specific data.
 	// This method takes a MarketAsk message from the producer to identify the correct transaction.
 	// A web server will be exposed by the producer to server data. This method will hang until the server
@@ -46,10 +46,10 @@ type MarketClient interface {
 	// or an error will occur because of a timeout.
 	// Returns a Receipt message with transaction ID from the consumer.
 	ProducerAcceptTransaction(ctx context.Context, in *MarketAsk, opts ...grpc.CallOption) (*Receipt, error)
-	// A simple RPC method to finalize a transaction between a producer and a consumer.
+	// A simple RPC method to finalize a transaction between a producer and a consumer. Should be called by consumer when payment is sent
 	// TODO: Connect whenever OrcaNet blockchain running
-	// This method takes a MarketAsk message pretaining to the transaction to finalize, then will eventually
-	// initiate the transaction on the blockchain when it is running.
+	// This method takes a MarketAsk message pretaining to the transaction to finalize, the consumer
+	// must add the transaction id on the blockchain to the context of the gRPC call.
 	// Returns a Receipt message which will contain the hash of the transaction ID on the blockchain.
 	FinalizeMarketTransaction(ctx context.Context, in *MarketAsk, opts ...grpc.CallOption) (*Receipt, error)
 }
@@ -62,9 +62,9 @@ func NewMarketClient(cc grpc.ClientConnInterface) MarketClient {
 	return &marketClient{cc}
 }
 
-func (c *marketClient) MarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQueries, error) {
-	out := new(MarketQueries)
-	err := c.cc.Invoke(ctx, "/Market/MarketQuery", in, out, opts...)
+func (c *marketClient) ConsumerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQuery, error) {
+	out := new(MarketQuery)
+	err := c.cc.Invoke(ctx, "/Market/ConsumerMarketQuery", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +89,8 @@ func (c *marketClient) InitiateMarketTransaction(ctx context.Context, in *Market
 	return out, nil
 }
 
-func (c *marketClient) ProducerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQueries, error) {
-	out := new(MarketQueries)
+func (c *marketClient) ProducerMarketQuery(ctx context.Context, in *MarketQueryArgs, opts ...grpc.CallOption) (*MarketQuery, error) {
+	out := new(MarketQuery)
 	err := c.cc.Invoke(ctx, "/Market/ProducerMarketQuery", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -122,8 +122,8 @@ func (c *marketClient) FinalizeMarketTransaction(ctx context.Context, in *Market
 type MarketServer interface {
 	// A simple RPC method to query the server for the current producer asks for specific data
 	// This method takes a MarketQueryArgs message which will contain the hash/URL of the data being queried.
-	// Returns message MarketQueries which contains an array of MarketAsk messages that represent current producer asks.
-	MarketQuery(context.Context, *MarketQueryArgs) (*MarketQueries, error)
+	// Returns message MarketQuery which contains an array of MarketAsk messages that represent current producer asks.
+	ConsumerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQuery, error)
 	// A simple RPC method to register a producers ask for specific data retrieval.
 	// Returns a MarketAsk message to confirm details of producers ask transaction.
 	RegisterMarketAsk(context.Context, *MarketAskArgs) (*MarketAsk, error)
@@ -135,8 +135,8 @@ type MarketServer interface {
 	InitiateMarketTransaction(context.Context, *MarketAsk) (*MarketDataTransfer, error)
 	// A simple RPC method for a producer to see which consumers want to receive certain data.
 	// This method takes a MarketQueryArgs message to indicate which data they want to see consumer requests for.
-	// Returns a MarketQueries message.
-	ProducerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQueries, error)
+	// Returns a MarketQuery message.
+	ProducerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQuery, error)
 	// A simple RPC method to accept an incoming request for specific data.
 	// This method takes a MarketAsk message from the producer to identify the correct transaction.
 	// A web server will be exposed by the producer to server data. This method will hang until the server
@@ -144,10 +144,10 @@ type MarketServer interface {
 	// or an error will occur because of a timeout.
 	// Returns a Receipt message with transaction ID from the consumer.
 	ProducerAcceptTransaction(context.Context, *MarketAsk) (*Receipt, error)
-	// A simple RPC method to finalize a transaction between a producer and a consumer.
+	// A simple RPC method to finalize a transaction between a producer and a consumer. Should be called by consumer when payment is sent
 	// TODO: Connect whenever OrcaNet blockchain running
-	// This method takes a MarketAsk message pretaining to the transaction to finalize, then will eventually
-	// initiate the transaction on the blockchain when it is running.
+	// This method takes a MarketAsk message pretaining to the transaction to finalize, the consumer
+	// must add the transaction id on the blockchain to the context of the gRPC call.
 	// Returns a Receipt message which will contain the hash of the transaction ID on the blockchain.
 	FinalizeMarketTransaction(context.Context, *MarketAsk) (*Receipt, error)
 	mustEmbedUnimplementedMarketServer()
@@ -157,8 +157,8 @@ type MarketServer interface {
 type UnimplementedMarketServer struct {
 }
 
-func (UnimplementedMarketServer) MarketQuery(context.Context, *MarketQueryArgs) (*MarketQueries, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MarketQuery not implemented")
+func (UnimplementedMarketServer) ConsumerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQuery, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConsumerMarketQuery not implemented")
 }
 func (UnimplementedMarketServer) RegisterMarketAsk(context.Context, *MarketAskArgs) (*MarketAsk, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterMarketAsk not implemented")
@@ -166,7 +166,7 @@ func (UnimplementedMarketServer) RegisterMarketAsk(context.Context, *MarketAskAr
 func (UnimplementedMarketServer) InitiateMarketTransaction(context.Context, *MarketAsk) (*MarketDataTransfer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateMarketTransaction not implemented")
 }
-func (UnimplementedMarketServer) ProducerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQueries, error) {
+func (UnimplementedMarketServer) ProducerMarketQuery(context.Context, *MarketQueryArgs) (*MarketQuery, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProducerMarketQuery not implemented")
 }
 func (UnimplementedMarketServer) ProducerAcceptTransaction(context.Context, *MarketAsk) (*Receipt, error) {
@@ -188,20 +188,20 @@ func RegisterMarketServer(s grpc.ServiceRegistrar, srv MarketServer) {
 	s.RegisterService(&Market_ServiceDesc, srv)
 }
 
-func _Market_MarketQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Market_ConsumerMarketQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MarketQueryArgs)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MarketServer).MarketQuery(ctx, in)
+		return srv.(MarketServer).ConsumerMarketQuery(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Market/MarketQuery",
+		FullMethod: "/Market/ConsumerMarketQuery",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MarketServer).MarketQuery(ctx, req.(*MarketQueryArgs))
+		return srv.(MarketServer).ConsumerMarketQuery(ctx, req.(*MarketQueryArgs))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -304,8 +304,8 @@ var Market_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*MarketServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "MarketQuery",
-			Handler:    _Market_MarketQuery_Handler,
+			MethodName: "ConsumerMarketQuery",
+			Handler:    _Market_ConsumerMarketQuery_Handler,
 		},
 		{
 			MethodName: "RegisterMarketAsk",
