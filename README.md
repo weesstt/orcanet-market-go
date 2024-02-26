@@ -14,11 +14,11 @@ will call the ProducerMarketQuery gRPC method to see which consumers want specif
 call the ProducerAcceptTransaction method to accept to serve data to a consumer. The ProducerAcceptTransaction will not return a value until a FinalizeMarketTransaction gRPC call is made by the consumer indicating the end of a transaction or there is a timeout. When the ProducerAcceptTransaction method is received by the server, a MarketDataTransfer message will be returned to the consumer by the InitiateMarketTransaction method. At which time the consumer should send the transaction to the OrcaNet blockchain then call the FinalizeMarketTransaction with the transaction ID on the blockchain.
 
 ## TODO 
-- Producer: 
+### Producer: 
 1) Expose a web server and move the specified path from producer to the web root.
-- Consumer: 
+### Consumer: 
 1) Make consumer client initiate blockchain transaction on behalf of consumer instead of asking for transaction id.
-- Server
+### Server
 1) If a transaction timesout for either producer or consumer, make sure to remove any stored data.
 
 ### Long Term
