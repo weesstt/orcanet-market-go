@@ -14,20 +14,12 @@ will call the ProducerMarketQuery gRPC method to see which consumers want specif
 call the ProducerAcceptTransaction method to accept to serve data to a consumer. The ProducerAcceptTransaction will not return a value until a FinalizeMarketTransaction gRPC call is made by the consumer indicating the end of a transaction or there is a timeout. When the ProducerAcceptTransaction method is received by the server, a MarketDataTransfer message will be returned to the consumer by the InitiateMarketTransaction method. At which time the consumer should send the transaction to the OrcaNet blockchain then call the FinalizeMarketTransaction with the transaction ID on the blockchain.
 
 ## TODO 
-- Producer: Implement a CLI with the following options
-    1) Register market ask (Calls RegisterMarketAsk on market server).
-    2) List the incoming requests for specific data. 
-    3) Accept a certain incoming request for specific data.
-- Consumer: Implement a CLI with the following options
-    1) Initiate Market Transaction to indicate to a specific producer data is being requested.
-    2) Finalize Market Transaction once data is received by consumer and a transaction was done on the blockchain.
-- Server 
-    1) rpc MarketQuery(MarketQueryArgs) returns (MarketQueries) {}
-    2) rpc RegisterMarketAsk(MarketAskArgs) returns (MarketAsk) {}
-    3) rpc InitiateMarketTransaction(MarketAsk) returns (MarketDataTransfer) {}
-    4) rpc ProducerMarketQuery(MarketQueryArgs) returns (MarketQueries)
-    5) rpc ProducerAcceptTransaction(MarketAsk) returns (Receipt) {}
-    6) rpc FinalizeMarketTransaction(MarketAsk) returns (Receipt) {} 
+- Producer: 
+1) Expose a web server and move the specified path from producer to the web root.
+- Consumer: 
+1) Make consumer client initiate blockchain transaction on behalf of consumer instead of asking for transaction id.
+- Server
+1) If a transaction timesout for either producer or consumer, make sure to remove any stored data.
 
 ### Long Term
 - Abstract away notion of single file transfer to be a stream of data. 

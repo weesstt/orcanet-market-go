@@ -67,7 +67,7 @@ func main(){
 		ProducerAsks: make(map[string]map[string]pb.MarketAsk),
 		Transactions: make(map[string]map[string]*Transaction),
 	})
-	
+
 	log.Println(fmt.Sprintf("Serving gRPC on 0.0.0.0:%d", *port))
 	log.Fatal(grpcServer.Serve(lis))
 }
@@ -131,6 +131,10 @@ func (m *marketServer) RegisterMarketAsk(ctx context.Context, args *pb.MarketAsk
 	}
 
 	m.ProducerAsks[args.GetIdentifier()][pubIP] = ask;
+
+	fmt.Println("Registered market ask for data identifier: " + ask.Identifier)
+	fmt.Println("Bid: " + fmt.Sprintf("%f", ask.Bid) + ", Producer Public IP: " + ask.ProducerPubIP)
+	fmt.Println("----------------------------------")
 
 	return &ask, nil
 }
