@@ -46,7 +46,7 @@ func main() {
 
 	fmt.Println("1) Register a market ask for specific data")
 	fmt.Println("2) Query the market to see incoming transactions for registered market asks")
-	fmt.Println("4) Exit")
+	fmt.Println("3) Exit")
 
 	if(err != nil){
 		fmt.Println("Could not start producer client because public IP could not be retrieved.\nPlease try again.")
@@ -140,7 +140,7 @@ func main() {
 
 			for i := 0; i < len(list); i++ {
 				ask := list[i]
-				fmt.Printf("%d) %s\n", i, ask.GetConsumerPubIP())
+				fmt.Printf("%d) %s, Data Identifier: %s\n", i, ask.GetConsumerPubIP(), list[i].GetIdentifier())
 			}
 
 			var consumerOption int
@@ -176,6 +176,10 @@ func main() {
 			}
 
 			fmt.Println("Transaction finalized. OrcaNet transaction ID: " + receipt.GetIdentifier())
+
+		case 3:
+			fmt.Println("Shuting Down OrcaNet Producer Client")
+			return
 
 		default:
 			fmt.Println("Invalid option, please try again")

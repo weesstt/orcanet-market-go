@@ -191,6 +191,10 @@ func main() {
 
 			fmt.Println("Finalized transaction!")
 
+		case 3:
+			fmt.Println("Shuting Down OrcaNet Consumer Client")
+			return
+
 		default:
 			fmt.Println("Invalid option, please try again")
 			continue
