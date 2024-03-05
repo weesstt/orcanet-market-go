@@ -7,14 +7,12 @@ option go_package = "orcanet/market/market";
 package market;
 
 service Market {
-  rpc RegisterFile (SupplyFile) returns (google.protobuf.Empty) {}
-  rpc CheckHolders (CheckHolder) returns (Holders) {}
-  rpc RequestFile (FileRequest) returns (FileResponse) {}
+  // register a file on the market
+  rpc RegisterFile (RegisterFileRequest) returns (google.protobuf.Empty) {}
 
-  // I think we can delete this
-  rpc CheckRequests (CheckRequest) returns (Requests) {}
+  // check for holders of a file. returns a list of users
+  rpc CheckHolders (CheckHoldersRequest) returns (HoldersResponse) {}
 }
-
 
 message User {
   string id = 1;
@@ -24,36 +22,18 @@ message User {
   int32 port = 4;
 
   // price per mb for a file
-  int32 price = 5;
+  int64 price = 5;
 }
 
-message FileRequest {
+message CheckHoldersRequest {
+  string fileHash = 1;
+}
+
+message RegisterFileRequest {
   User user = 1;
   string fileHash = 2;
 }
 
-message SupplyFile {
-  User user = 1;
-  string fileHash = 2;
-}
-
-message CheckRequest {
-  string fileHash = 1;
-}
-
-message CheckHolder {
-  string fileHash = 1;
-}
-
-message FileResponse {
-  bool exists = 1;
-  string message = 2;
-}
-
-message Requests {
-  repeated FileRequest requests = 1;
-}
-
-message Holders {
-  repeated SupplyFile holders = 1;
+message HoldersResponse {
+  repeated User holders = 1;
 }

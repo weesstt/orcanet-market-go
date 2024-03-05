@@ -27,7 +27,6 @@ import (
 	"log"
 	"math/rand"
 	"slices"
-	"strconv"
 	"time"
 
 	pb "orcanet/market"
@@ -59,7 +58,7 @@ func main() {
 	userID := fmt.Sprintf("user%d", rand.Intn(10000))
 
 	fmt.Print("Enter a price for supplying files: ")
-	var price int32
+	var price int64
 	_, err = fmt.Scanln(&price)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -77,11 +76,9 @@ func main() {
 
 	for {
 		fmt.Println("---------------------------------")
-		fmt.Println("1. Request a file")
-		fmt.Println("2. Register a file")
-		fmt.Println("3. Check requests for a file")
-		fmt.Println("4. Check holders for a file")
-		fmt.Println("5. Exit")
+		fmt.Println("1. Register a file")
+		fmt.Println("2. Check holders for a file")
+		fmt.Println("3. Exit")
 		fmt.Print("Option: ")
 		var choice int
 		_, err := fmt.Scanln(&choice)
@@ -90,7 +87,7 @@ func main() {
 			continue
 		}
 
-		if choice == 5 {
+		if choice == 3 {
 			return
 		}
 
@@ -104,14 +101,10 @@ func main() {
 
 		switch choice {
 		case 1:
-			createRequest(c, user, fileHash)
+			registerFile(c, user, fileHash)
 		case 2:
-			registerRequest(c, user, fileHash)
-		case 3:
-			checkRequests(c, fileHash)
-		case 4:
 			checkHolders(c, user, fileHash)
-		case 5:
+		case 3:
 			return
 		default:
 			fmt.Println("Unknown option: ", choice)
@@ -121,86 +114,31 @@ func main() {
 	}
 }
 
-// creates a request that a user with userId wants a file with fileHash
-func createRequest(c pb.MarketClient, user *pb.User, fileHash string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash})
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	} else {
-		log.Printf("Result: %t, %s", r.GetExists(), r.GetMessage())
-	}
-}
-
-// I think we can delete this
-// get all users who wants a file with fileHash
-func checkRequests(c pb.MarketClient, fileHash string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	reqs, err := c.CheckRequests(ctx, &pb.CheckRequest{FileHash: fileHash})
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	} else {
-		for _, req := range reqs.GetRequests() {
-			user := req.GetUser()
-			log.Printf("Username: %s", user.GetName())
-		}
-	}
-}
-
 // print all users who are holding a file with fileHash
 func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	holders, err := c.CheckHolders(ctx, &pb.CheckHolder{FileHash: fileHash})
+	holders, err := c.CheckHolders(ctx, &pb.CheckHoldersRequest{FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 		return
 	}
 	supply_files := holders.GetHolders()
-	slices.SortFunc(supply_files, func(a, b *pb.SupplyFile) int {
-		return cmp.Compare(a.GetUser().GetPrice(), b.GetUser().GetPrice())
+	slices.SortFunc(supply_files, func(a, b *pb.User) int {
+		return cmp.Compare(a.GetPrice(), b.GetPrice())
 	})
 	for idx, holder := range supply_files {
-		user := holder.GetUser()
-		fmt.Printf("(%d) Username: %s, Price: %d\n", idx, user.GetName(), user.GetPrice())
-	}
-
-	fmt.Println("Choose which supplier to get file from, or 'n' to cancel:")
-	var choice string
-	_, err = fmt.Scanln(&choice)
-	if err != nil {
-		fmt.Println("Error: ", err)
-		return
-	}
-	idx, err := strconv.ParseInt(choice, 10, 32)
-	if err != nil {
-		return
-	}
-	if idx < 0 || int(idx) > len(supply_files) {
-		fmt.Println("Invalid index chosen")
-		return
-	}
-	fmt.Printf("%v chosen, requesting file\n", idx)
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
-	r, err := c.RequestFile(ctx, &pb.FileRequest{User: user, FileHash: fileHash})
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	} else {
-		log.Printf("Result: %t, %s", r.GetExists(), r.GetMessage())
+		fmt.Printf("(%d) Username: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
 	}
 
 }
 
-func registerRequest(c pb.MarketClient, user *pb.User, fileHash string) {
+func registerFile(c pb.MarketClient, user *pb.User, fileHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := c.RegisterFile(ctx, &pb.SupplyFile{User: user, FileHash: fileHash})
+	_, err := c.RegisterFile(ctx, &pb.RegisterFileRequest{User: user, FileHash: fileHash})
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	} else {
