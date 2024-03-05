@@ -37,24 +37,8 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// I think we can delete this
-// maps file hashes to a list of requests
-var requests = make(map[string][]*pb.FileRequest)
-
 // map file hashes to supplied files + prices
-var files = make(map[string][]*pb.SupplyFile)
-
-// print the current requests map
-func printRequestsMap() {
-	for hash, users := range requests {
-		fmt.Printf("\nFile Hash: %s\n", hash)
-
-		for _, req := range users {
-			user := req.GetUser()
-			fmt.Println("Username: ", user.GetName())
-		}
-	}
-}
+var files = make(map[string][]*pb.RegisterFileRequest)
 
 // print the current holders map
 func printHoldersMap() {
@@ -88,45 +72,9 @@ func main() {
 	}
 }
 
-// I think we can modify this instead of adding to the map 
-// Add a request that a user with userId wants file with a hash
-func (s *server) RequestFile(ctx context.Context, in *pb.FileRequest) (*pb.FileResponse, error) {
-	hash := in.GetFileHash()
-
-	// Check if file is held by anyone; I hate Go
-	if _, ok := files[hash]; !ok {
-		return &pb.FileResponse{Exists: false, Message: "File not found"}, nil
-	}
-
-	requests[hash] = append(requests[hash], in)
-
-	return &pb.FileResponse{Exists: true, Message: "OK"}, nil
-}
-
-// I think we can delete this
-// Get a list of userIds who are requesting a file with a hash
-func (s *server) CheckRequests(ctx context.Context, in *pb.CheckRequest) (*pb.Requests, error) {
-	hash := in.GetFileHash()
-	printRequestsMap()
-
-	reqs := requests[hash]
-	return &pb.Requests{Requests: reqs}, nil
-}
-
 // register that the a user holds a file, then add the user to the list of file holders
-func (s *server) RegisterFile(ctx context.Context, in *pb.SupplyFile) (*emptypb.Empty, error) {
+func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
 	hash := in.GetFileHash()
-
-	/*
-		idk if we need this since many people should be able to hold the same file
-
-		// Check if file is held by anyone, don't do anything
-		// TODO: perform blockchain transaction here
-		if _, ok := supplies[fileId]; ok {
-			return &emptypb.Empty{}, nil
-		}
-
-	*/
 
 	files[hash] = append(files[hash], in)
 	fmt.Printf("Num of registered files: %d\n", len(files[hash]))
@@ -134,11 +82,17 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.SupplyFile) (*emptypb.
 }
 
 // CheckHolders returns a list of user names holding a file with a hash
-func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHolder) (*pb.Holders, error) {
+func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
 	hash := in.GetFileHash()
 
 	holders := files[hash]
+
+	users := make([]*pb.User, len(holders))
+	for i, holder := range holders {
+		users[i] = holder.GetUser()
+	}
+
 	printHoldersMap()
 
-	return &pb.Holders{Holders: holders}, nil
+	return &pb.HoldersResponse{Holders: users}, nil
 }
