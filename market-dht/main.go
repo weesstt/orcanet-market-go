@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	// "bufio"
+	"errors"
 	"time"
 	"log"
 	"sync"
@@ -30,8 +31,12 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	// "github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p-record"
+	// "github.com/libp2p/go-libp2p-record"
 	"flag"
+	pb "orcanet/market"
+	"github.com/golang/protobuf/proto"
+	//"google.golang.org/grpc"
+	//"google.golang.org/protobuf/types/known/emptypb"
 )
 
 //Create a record validator to store our own values within our defined protocol
@@ -39,11 +44,54 @@ type OrcaValidator struct {}
 
 //testing, will actually validate later
 func (v OrcaValidator) Validate(key string, value []byte) error{
-	return nil; 
+	//TODO: verify key is a sha256 hash
+
+	for i := 0; i < len(value); i++ {
+		messageLength := uint16(value[1]) << 8 | uint16(value[0])
+		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		contentLength := messageLength + digitalSignatureLength
+		user := &pb.User{}
+
+		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+		if err != nil {
+			return err
+		}
+
+		userMessageBytes := value[i + 4:i + 4 + int(messageLength)]
+
+		publicKey, err := crypto.UnmarshalRsaPublicKey(user.GetId())
+		if err != nil{
+			return err
+		}
+
+		signatureBytes := value[i + 4 + int(messageLength):i + 4 + int(contentLength)]
+		valid, err := publicKey.Verify(userMessageBytes, signatureBytes) //this function will automatically compute hash of data to compare signauture
+		
+		if err != nil {
+			return err
+		}
+
+		if !valid {
+			return errors.New("Signature invalid!")
+		}
+
+		i = i + 4 + int(contentLength) - 1
+	}
+
+	return nil
 }
 
 func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
-	return 0, nil; 
+	max := 0
+	maxIndex := 0
+	for i := 0; i < len(value); i++ {
+		if len(value[i]) > max {
+			max = len(value[i])
+			maxIndex = i
+		}
+	}
+
+	return maxIndex, nil;
 }
 
 func main() {
