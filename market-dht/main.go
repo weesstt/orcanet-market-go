@@ -31,10 +31,11 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	// "github.com/libp2p/go-libp2p/core/network"
-	// "github.com/libp2p/go-libp2p-record"
+	"github.com/libp2p/go-libp2p-record"
 	"flag"
 	pb "orcanet/market"
 	"github.com/golang/protobuf/proto"
+	"regexp"
 	//"google.golang.org/grpc"
 	//"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -42,9 +43,15 @@ import (
 //Create a record validator to store our own values within our defined protocol
 type OrcaValidator struct {}
 
-//testing, will actually validate later
 func (v OrcaValidator) Validate(key string, value []byte) error{
-	//TODO: verify key is a sha256 hash
+	// verify key is a sha256 hash
+    hexPattern := "^[a-fA-F0-9]{64}$"
+    regex := regexp.MustCompile(hexPattern)
+    if !regex.MatchString(key) {
+		return errors.New("Provided key is not in the form of a SHA-256 digest!")
+	}
+
+	pubKeySet := make(map[string] bool)
 
 	for i := 0; i < len(value); i++ {
 		messageLength := uint16(value[1]) << 8 | uint16(value[0])
@@ -55,6 +62,12 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
 		if err != nil {
 			return err
+		}
+
+		if pubKeySet[string(user.GetId())] == true {
+			return errors.New("Duplicate record for the same public key found!")
+		}else{
+			pubKeySet[string(user.GetId())] = true
 		}
 
 		userMessageBytes := value[i + 4:i + 4 + int(messageLength)]

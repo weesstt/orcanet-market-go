@@ -9,6 +9,35 @@
     - putKey: Provide a key to put a value into the DHT, a putValue must be specified as well.
     - putValue: Provide a value to put into for the specified key into the DHT, must specify putKey as well.
 
+## Records 
+Our market records will be validated for the following specification:
+
+```
+     +-----------------------------------+
+     |User Protocol Buffer Message Length|
+     |             (2 Bytes)             |
+     +-----------------------------------+
+     +-----------------------------------+
+     |     Digital Signature Length      |
+     |             (2 Bytes)             |
+     +-----------------------------------+
+     +-----------------------------------+
+     |    User Protocol Buffer Message   |
+     |             (Variable)            |
+     +-----------------------------------+
+     +-----------------------------------+
+     |        Digital Signature          |
+     |             (Variable)            |
+     +-----------------------------------+
+                       |
+                  (Repeating)
+                       |
+                       v
+```
+
+1) Each signature of the user protocol buffer message must be valid or the DHT will not accept the chain.
+2) There can only be one record per public key in a chain or the DHT will not accept the chain.
+
 ## Example Network Setup
 
 1) Start a bootstrap node (must have public ip) to start network.
