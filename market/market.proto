@@ -15,14 +15,14 @@ service Market {
 }
 
 message User {
-  //public key in raw bytes
-  bytes id = 1;
+  string id = 1;
+  string name = 2;
 
-  string ip = 2;
-  int32 port = 3;
+  string ip = 3;
+  int32 port = 4;
 
   // price per mb for a file
-  int64 price = 4;
+  int64 price = 5;
 }
 
 message CheckHoldersRequest {

@@ -25,7 +25,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"slices"
 	"time"
 
@@ -40,6 +39,8 @@ var (
 )
 
 func main() {
+	// var bootstrapPeer string
+
 	flag.Parse()
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -55,7 +56,7 @@ func main() {
 	fmt.Scanln(&username)
 
 	// Generate a random ID for new user
-	userID := fmt.Sprintf("user%d", rand.Intn(10000))
+	// userID := fmt.Sprintf("user%d", rand.Intn(10000))
 
 	fmt.Print("Enter a price for supplying files: ")
 	var price int64
@@ -67,8 +68,8 @@ func main() {
 
 	// Create a User struct with the provided username and generated ID
 	user := &pb.User{
-		Id:    userID,
-		Name:  username,
+		// Id:    userID,
+		// Name:  username,
 		Ip:    "localhost",
 		Port:  416320,
 		Price: price,
@@ -116,6 +117,9 @@ func main() {
 
 // print all users who are holding a file with fileHash
 func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
+	if user.Price == -10 {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -128,9 +132,9 @@ func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
 	slices.SortFunc(supply_files, func(a, b *pb.User) int {
 		return cmp.Compare(a.GetPrice(), b.GetPrice())
 	})
-	for idx, holder := range supply_files {
-		fmt.Printf("(%d) Username: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
-	}
+	// for idx, holder := range supply_files {
+	// 	fmt.Printf("(%d) Username: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
+	// }
 
 }
 
