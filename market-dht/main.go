@@ -11,107 +11,51 @@ package main
 import (
 	"context"
 	"fmt"
+
 	// "bufio"
-	"errors"
-	"time"
 	"log"
 	"sync"
+	"time"
+
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p/core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+
 	// "github.com/libp2p/go-libp2p-net"
 	// "github.com/ipfs/go-datastore"
 	// "github.com/ipfs/go-ipfs-addr"
 	// "github.com/libp2p/go-libp2p-peerstore"
 	// "github.com/ipfs/go-cid"
 	// "github.com/multiformats/go-multihash"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/libp2p/go-libp2p/core/crypto"
+
 	// "github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p-record"
 	"flag"
-	pb "orcanet/market"
-	"github.com/golang/protobuf/proto"
-	"regexp"
-	//"google.golang.org/grpc"
-	//"google.golang.org/protobuf/types/known/emptypb"
+
+	record "github.com/libp2p/go-libp2p-record"
 )
 
-//Create a record validator to store our own values within our defined protocol
-type OrcaValidator struct {}
+// Create a record validator to store our own values within our defined protocol
+type OrcaValidator struct{}
 
-func (v OrcaValidator) Validate(key string, value []byte) error{
-	// verify key is a sha256 hash
-    hexPattern := "^[a-fA-F0-9]{64}$"
-    regex := regexp.MustCompile(hexPattern)
-    if !regex.MatchString(key) {
-		return errors.New("Provided key is not in the form of a SHA-256 digest!")
-	}
-
-	pubKeySet := make(map[string] bool)
-
-	for i := 0; i < len(value); i++ {
-		messageLength := uint16(value[1]) << 8 | uint16(value[0])
-		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
-		contentLength := messageLength + digitalSignatureLength
-		user := &pb.User{}
-
-		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
-		if err != nil {
-			return err
-		}
-
-		if pubKeySet[string(user.GetId())] == true {
-			return errors.New("Duplicate record for the same public key found!")
-		}else{
-			pubKeySet[string(user.GetId())] = true
-		}
-
-		userMessageBytes := value[i + 4:i + 4 + int(messageLength)]
-
-		publicKey, err := crypto.UnmarshalRsaPublicKey(user.GetId())
-		if err != nil{
-			return err
-		}
-
-		signatureBytes := value[i + 4 + int(messageLength):i + 4 + int(contentLength)]
-		valid, err := publicKey.Verify(userMessageBytes, signatureBytes) //this function will automatically compute hash of data to compare signauture
-		
-		if err != nil {
-			return err
-		}
-
-		if !valid {
-			return errors.New("Signature invalid!")
-		}
-
-		i = i + 4 + int(contentLength) - 1
-	}
-
+// testing, will actually validate later
+func (v OrcaValidator) Validate(key string, value []byte) error {
 	return nil
 }
 
-func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
-	max := 0
-	maxIndex := 0
-	for i := 0; i < len(value); i++ {
-		if len(value[i]) > max {
-			max = len(value[i])
-			maxIndex = i
-		}
-	}
-
-	return maxIndex, nil;
+func (v OrcaValidator) Select(key string, value [][]byte) (int, error) {
+	return 0, nil
 }
 
 func main() {
 	var bootstrapPeer string
 	var searchKey string
 	var putKey string
-	var putValue string 
+	var putValue string
 	var isClient bool
 	flag.StringVar(&bootstrapPeer, "bootstrap", "", "Specify a bootstrap peer multiaddr")
 	flag.StringVar(&searchKey, "searchKey", "", "Search for a key repeatedly until found")
@@ -121,7 +65,7 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
-	
+
 	//Generate private key for peer
 	privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
 	if err != nil {
@@ -134,7 +78,7 @@ func main() {
 		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
 		libp2p.Identity(privKey), //derive id from private key
 	}
-	host, err := libp2p.New(opts...);
+	host, err := libp2p.New(opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -146,9 +90,9 @@ func main() {
 	}
 
 	//An array if we want to expand to a more stable peer list instead of providing in args
-	bootstrapPeers := []string {
+	bootstrapPeers := []string{
 		bootstrapPeer,
-	} 
+	}
 
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
@@ -156,15 +100,15 @@ func main() {
 	// inhibiting future peer discovery.
 	var validator record.Validator = OrcaValidator{}
 	var options []dht.Option
-	if(isClient){ //if no bootstrap peer, go into server mode
+	if isClient { //if no bootstrap peer, go into server mode
 		options = append(options, dht.Mode(dht.ModeClient))
-	}else{
+	} else {
 		options = append(options, dht.Mode(dht.ModeServer))
 	}
-	options = append(options, dht.ProtocolPrefix("orcanet/market"), dht.Validator(validator));
+	options = append(options, dht.ProtocolPrefix("orcanet/market"), dht.Validator(validator))
 	kDHT, err := dht.New(ctx, host, options...)
-	if(err != nil){
-		panic(err);
+	if err != nil {
+		panic(err)
 	}
 
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
@@ -178,9 +122,11 @@ func main() {
 	// other nodes in the network.
 	var wg sync.WaitGroup
 	for _, peerAddrString := range bootstrapPeers {
-		if(peerAddrString == ""){continue;}
+		if peerAddrString == "" {
+			continue
+		}
 		peerAddr, err := multiaddr.NewMultiaddr(peerAddrString)
-		if(err != nil){
+		if err != nil {
 			panic(err)
 		}
 		peerinfo, _ := peer.AddrInfoFromP2pAddr(peerAddr)
@@ -195,35 +141,35 @@ func main() {
 		}()
 	}
 	wg.Wait()
-	
-	go discoverPeers(ctx, host, kDHT, "orcanet/market");
+
+	go discoverPeers(ctx, host, kDHT, "orcanet/market")
 	time.Sleep(5 * time.Second)
 
-	if(putKey != ""){
+	if putKey != "" {
 		for {
-			err = kDHT.PutValue(ctx, "orcanet/market/" + putKey, []byte(putValue))
-			if(err != nil){
+			err = kDHT.PutValue(ctx, "orcanet/market/"+putKey, []byte(putValue))
+			if err != nil {
 				fmt.Println("Error: ", err)
 				time.Sleep(5 * time.Second)
-				continue;
+				continue
 			}
-			fmt.Println("Put key: ", putKey + " Value: " + putValue)
-			break;
+			fmt.Println("Put key: ", putKey+" Value: "+putValue)
+			break
 		}
 	}
-	
-	if(searchKey != ""){
+
+	if searchKey != "" {
 		for {
-			valueStream, err := kDHT.SearchValue(ctx, "orcanet/market/" + searchKey)
+			valueStream, err := kDHT.SearchValue(ctx, "orcanet/market/"+searchKey)
 			fmt.Println("Searching for " + searchKey)
-			if(err != nil){
+			if err != nil {
 				fmt.Println("Error: ", err)
 				time.Sleep(5 * time.Second)
-				continue;
+				continue
 			}
 			time.Sleep(5 * time.Second)
 			for byteArray := range valueStream {
-				fmt.Println(string(byteArray));
+				fmt.Println(string(byteArray))
 			}
 		}
 	}
