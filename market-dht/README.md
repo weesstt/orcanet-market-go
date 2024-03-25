@@ -13,6 +13,8 @@
 Our market records will be validated for the following specification:
 
 ```
+                Array of Bytes
+
      +-----------------------------------+
      |User Protocol Buffer Message Length|
      |             (2 Bytes)             |
