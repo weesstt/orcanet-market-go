@@ -42,18 +42,77 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"regexp"
+	"errors"
+	"github.com/golang/protobuf/proto"
 )
 
 // Create a record validator to store our own values within our defined protocol
 type OrcaValidator struct{}
 
-// testing, will actually validate later
-func (v OrcaValidator) Validate(key string, value []byte) error {
+func (v OrcaValidator) Validate(key string, value []byte) error{
+	// verify key is a sha256 hash
+    hexPattern := "^[a-fA-F0-9]{64}$"
+    regex := regexp.MustCompile(hexPattern)
+    if !regex.MatchString(key) {
+		return errors.New("Provided key is not in the form of a SHA-256 digest!")
+	}
+
+	pubKeySet := make(map[string] bool)
+
+	for i := 0; i < len(value); i++ {
+		messageLength := uint16(value[1]) << 8 | uint16(value[0])
+		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		contentLength := messageLength + digitalSignatureLength
+		user := &pb.User{}
+
+		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+		if err != nil {
+			return err
+		}
+
+		if pubKeySet[string(user.GetId())] == true {
+			return errors.New("Duplicate record for the same public key found!")
+		}else{
+			pubKeySet[string(user.GetId())] = true
+		}
+
+		userMessageBytes := value[i + 4:i + 4 + int(messageLength)]
+
+		publicKey, err := crypto.UnmarshalRsaPublicKey(user.GetId())
+		if err != nil{
+			return err
+		}
+
+		signatureBytes := value[i + 4 + int(messageLength):i + 4 + int(contentLength)]
+		valid, err := publicKey.Verify(userMessageBytes, signatureBytes) //this function will automatically compute hash of data to compare signauture
+		
+		if err != nil {
+			return err
+		}
+
+		if !valid {
+			return errors.New("Signature invalid!")
+		}
+
+		i = i + 4 + int(contentLength) - 1
+	}
+
 	return nil
 }
 
-func (v OrcaValidator) Select(key string, value [][]byte) (int, error) {
-	return 0, nil
+//We will select the best value based on the longest chain
+func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
+	max := 0
+	maxIndex := 0
+	for i := 0; i < len(value); i++ {
+		if len(value[i]) > max {
+			max = len(value[i])
+			maxIndex = i
+		}
+	}
+
+	return maxIndex, nil;
 }
 
 var (
@@ -61,16 +120,16 @@ var (
 )
 
 // map file hashes to supplied files + prices
+//TODO: change this to be the DHT instance
 var files = make(map[string][]*pb.RegisterFileRequest)
 
 // print the current holders map
 func printHoldersMap() {
 	for hash, holders := range files {
 		fmt.Printf("\nFile Hash: %s\n", hash)
-
 		for _, holder := range holders {
 			user := holder.GetUser()
-			fmt.Printf("Username: %s, Price: %d\n", user.GetName(), user.GetPrice())
+			fmt.Printf("ID: %s, Price: %d\n", user.GetId(), user.GetPrice())
 			// fmt.Printf("Price: %d\n", user.GetPrice())
 		}
 
@@ -82,12 +141,12 @@ type server struct {
 }
 
 func main() {
-	var bootstrapPeer string
-	flag.Parse()
-
+	//TODO: read from file bootstrap.peers to get peers
+	bootstrapPeer := ""
 	ctx := context.Background()
 
-	//Generate private key for peer
+	//Generate private key for peer, 
+	//TODO: add flag option to allow user to specify public/private key files instead of generating one
 	privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
 	if err != nil {
 		panic(err)

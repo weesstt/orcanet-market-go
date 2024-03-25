@@ -15,14 +15,13 @@ service Market {
 }
 
 message User {
-  string id = 1;
-  string name = 2;
+  bytes id = 1;
 
-  string ip = 3;
-  int32 port = 4;
+  string ip = 2;
+  int32 port = 3;
 
   // price per mb for a file
-  int64 price = 5;
+  int64 price = 4;
 }
 
 message CheckHoldersRequest {
