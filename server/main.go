@@ -50,6 +50,19 @@ import (
 // Create a record validator to store our own values within our defined protocol
 type OrcaValidator struct{}
 
+type server struct {
+	pb.UnimplementedMarketServer
+	kDHT dht.IpfsDHT
+}
+
+var (
+	port = flag.Int("port", 50051, "The server port"),
+)
+
+// map file hashes to supplied files + prices
+//TODO: change this to be the DHT instance
+var files = make(map[string][]*pb.RegisterFileRequest)
+
 func (v OrcaValidator) Validate(key string, value []byte) error{
 	// verify key is a sha256 hash
     hexPattern := "^[a-fA-F0-9]{64}$"
@@ -101,43 +114,21 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 	return nil
 }
 
-//We will select the best value based on the longest chain
+//We will select the best value based on the longest, valid chain
 func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	max := 0
 	maxIndex := 0
 	for i := 0; i < len(value); i++ {
 		if len(value[i]) > max {
-			max = len(value[i])
-			maxIndex = i
+			//validate chain 
+			if OrcaValidator.Validate(key, value[i]) == nil {
+				max = len(value[i])
+				maxIndex = i
+			}
 		}
 	}
 
 	return maxIndex, nil;
-}
-
-var (
-	port = flag.Int("port", 50051, "The server port")
-)
-
-// map file hashes to supplied files + prices
-//TODO: change this to be the DHT instance
-var files = make(map[string][]*pb.RegisterFileRequest)
-
-// print the current holders map
-func printHoldersMap() {
-	for hash, holders := range files {
-		fmt.Printf("\nFile Hash: %s\n", hash)
-		for _, holder := range holders {
-			user := holder.GetUser()
-			fmt.Printf("ID: %s, Price: %d\n", user.GetId(), user.GetPrice())
-			// fmt.Printf("Price: %d\n", user.GetPrice())
-		}
-
-	}
-}
-
-type server struct {
-	pb.UnimplementedMarketServer
 }
 
 func main() {
@@ -225,11 +216,13 @@ func main() {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		panic(err)
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterMarketServer(s, &server{})
+	serverStruct = server{}
+	serverStruct.kDHT = kDHT;
+	pb.RegisterMarketServer(s, &serverStruct)
 	log.Printf("Server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Error %v", err)
@@ -242,6 +235,10 @@ func main() {
 // register that the a user holds a file, then add the user to the list of file holders
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
 	hash := in.GetFileHash()
+	holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
+	if(err != nil){
+		return nil, errors.New("Could not retrieve holders: " + err);
+	}
 
 	files[hash] = append(files[hash], in)
 	fmt.Printf("Num of registered files: %d\n", len(files[hash]))
@@ -251,15 +248,26 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 // CheckHolders returns a list of user names holding a file with a hash
 func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
 	hash := in.GetFileHash()
-
-	holders := files[hash]
-
-	users := make([]*pb.User, len(holders))
-	for i, holder := range holders {
-		users[i] = holder.GetUser()
+	holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
+	if(err != nil){
+		return nil, errors.New("Could not retrieve holders: " + err);
 	}
 
-	printHoldersMap()
+	users := make([]*pb.User, len(holders))
+	for i := 0; i < len(holders); i++ {
+		messageLength := uint16(value[1]) << 8 | uint16(value[0])
+		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		contentLength := messageLength + digitalSignatureLength
+		user := &pb.User{}
+
+		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+		if err != nil {
+			return err
+		}
+
+		users = append(users, user);
+		i = i + 4 + int(contentLength) - 1
+	}
 
 	return &pb.HoldersResponse{Holders: users}, nil
 }
