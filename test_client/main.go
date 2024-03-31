@@ -68,8 +68,6 @@ func main() {
 
 	// Create a User struct with the provided username and generated ID
 	user := &pb.User{
-		// Id:    userID,
-		// Name:  username,
 		Ip:    "localhost",
 		Port:  416320,
 		Price: price,
@@ -129,13 +127,13 @@ func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
 		return
 	}
 	supply_files := holders.GetHolders()
+	fmt.Println(len(supply_files));
 	slices.SortFunc(supply_files, func(a, b *pb.User) int {
 		return cmp.Compare(a.GetPrice(), b.GetPrice())
 	})
-	// for idx, holder := range supply_files {
-	// 	fmt.Printf("(%d) Username: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
-	// }
-
+	for idx, holder := range supply_files {
+		fmt.Printf("(%d), ID: %s, Price: %d\n", idx, holder.GetIp(), holder.GetPrice())
+	}
 }
 
 func registerFile(c pb.MarketClient, user *pb.User, fileHash string) {

@@ -22,6 +22,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"flag"
 	"fmt"
 	"log"
@@ -59,6 +60,8 @@ type OrcaValidator struct{}
 type server struct {
 	pb.UnimplementedMarketServer
 	K_DHT *dht.IpfsDHT
+	PrivKey crypto.PrivKey
+	PubKey crypto.PubKey
 }
 
 var (
@@ -73,15 +76,15 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 	// verify key is a sha256 hash
     hexPattern := "^[a-fA-F0-9]{64}$"
     regex := regexp.MustCompile(hexPattern)
-    if !regex.MatchString(key) {
+    if !regex.MatchString(strings.Replace(key, "orcanet/market/", "", -1)) {
 		return errors.New("Provided key is not in the form of a SHA-256 digest!")
 	}
 
 	pubKeySet := make(map[string] bool)
 
 	for i := 0; i < len(value); i++ {
-		messageLength := uint16(value[1]) << 8 | uint16(value[0])
-		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
+		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
 		user := &pb.User{}
 
@@ -137,23 +140,7 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	return maxIndex, nil;
 }
 
-//Takes a fileName and loads the private key stored in the file if the file exists
-//If the file does not exist, a private 2048 bit RSA key is generated then saved to the specified file name.
-// func generateOrLoadPrivKey(fileName string) crypto.PrivKey, error {
-//     // Use os.Stat() to get file information
-//     _, err := os.Stat(fileName)
-// 	if(err != nil){//A file does not exist, generate key and save it.
-// 		privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-
-// 		//Libp2p saves private keys using a specific protocol 
-// 		privKeyProtoBytes := crypto.MarshalPrivateKey(privKey);
-// 		priv
-// 	}else{
-
-// 	}
-// }
-
-func checkOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
+func checkOrCreatePrivateKey(path string) (crypto.PrivKey, error) {
 	// Check if the privateKey.pem exists
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -172,7 +159,13 @@ func checkOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
 			return nil, err
 		}
 		log.Println("New private key generated and saved to", path)
-		return privKey, nil
+
+		libp2pPrivKey, _, err := crypto.KeyPairFromStdKey(privKey);
+		if(err != nil){
+			return nil, err
+		}
+
+		return libp2pPrivKey, nil;
 	} else if err != nil {
 		// Some other error occurred when trying to read the file
 		return nil, err
@@ -193,24 +186,27 @@ func checkOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
 		return nil, err
 	}
 	log.Println("Existing private key loaded from", path)
-	return privKey, nil
+
+	libp2pPrivKey, _, err := crypto.KeyPairFromStdKey(privKey);
+	if(err != nil){
+		return nil, err
+	}
+
+	return libp2pPrivKey, nil;
 }
 
 func main() {
+	flag.Parse()
 	//TODO: read from file bootstrap.peers to get peers
-	bootstrapPeer := ""
 	ctx := context.Background()
 
 	//Generate private key for peer, 
-	goPrivKey, err := checkOrCreatePrivateKey("privateKey.pem");
+	privKey, err := checkOrCreatePrivateKey("privateKey.pem");
 	if(err != nil){
 		panic(err);
 	}
 
-	privKey, _, err := crypto.KeyPairFromStdKey(goPrivKey);
-	if(err != nil){
-		panic(err);
-	}
+	pubKey := privKey.GetPublic();
 
 	//Construct multiaddr from string and create host to listen on it
 	sourceMultiAddr, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/44981")
@@ -231,7 +227,9 @@ func main() {
 
 	//An array if we want to expand to a more stable peer list instead of providing in args
 	bootstrapPeers := []string{
-		bootstrapPeer,
+		"/ip4/194.113.73.99/tcp/44981/p2p/QmUreqMsLeKVuoCJCQEGLwKZ8M5cogoPsQQcEYUj26kefi",
+		"/ip4/209.151.148.27/tcp/44981/p2p/QmTnq5S4WZxoz9p1yP7JJBLXorgDYDqCnaKi97pTWUA3kQ",
+		"/ip4/209.151.155.108/tcp/44981/p2p/Qmb9ibW4nVcma6wEd35MzbhPDgk4tPbp8gtxv8ESig918x",
 	}
 
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
@@ -242,7 +240,7 @@ func main() {
 	var options []dht.Option
 	// no need for if statement to check if client is peer ? unless the testclient is also
 	// supposed to be removed
-	options = append(options, dht.Mode(dht.ModeServer))
+	options = append(options, dht.Mode(dht.ModeClient))
 	options = append(options, dht.ProtocolPrefix("orcanet/market"), dht.Validator(validator))
 	kDHT, err := dht.New(ctx, host, options...)
 	if err != nil {
@@ -291,6 +289,9 @@ func main() {
 	s := grpc.NewServer()
 	serverStruct := server{}
 	serverStruct.K_DHT = kDHT;
+	serverStruct.PrivKey = privKey;
+	serverStruct.PubKey = pubKey;
+
 	pb.RegisterMarketServer(s, &serverStruct)
 	log.Printf("Server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
@@ -298,19 +299,83 @@ func main() {
 	}
 
 	select {}
-
 }
 
 // register that the a user holds a file, then add the user to the list of file holders
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
-	// hash := in.GetFileHash()
-	// holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
-	// if(err != nil){
-	// 	return nil, errors.New("Could not retrieve holders: " + err);
-	// }
+	hash := in.GetFileHash()
+	pubKeyBytes, err := s.PubKey.Raw()
+	if(err != nil){
+		return nil, err
+	}
+	in.GetUser().Id = pubKeyBytes;
 
-	// files[hash] = append(files[hash], in)
-	// fmt.Printf("Num of registered files: %d\n", len(files[hash]))
+	holders, err := s.K_DHT.SearchValue(ctx, "orcanet/market/" + hash);
+	if(err != nil){
+		return nil, errors.New("Could not retrieve holders: " + err.Error());
+	}
+
+	bestValue := make([]byte, 0)
+	for value := range holders {
+		if len(value) > len(bestValue) {
+			bestValue = value;
+		}
+	}
+
+	//remove record for id if it already exists
+	for i := 0; i < len(bestValue); i++ {
+		value := bestValue
+		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
+		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
+		contentLength := messageLength + digitalSignatureLength
+		user := &pb.User{}
+
+		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+		if err != nil {
+			return nil, err
+		}
+
+		if(len(user.GetId()) == len(in.GetUser().GetId())){
+			recordExists := true
+			for i := range in.GetUser().GetId() {
+				if user.GetId()[i] != in.GetUser().GetId()[i] {
+					recordExists = false
+					break
+				}
+			}
+
+			if(recordExists){
+				bestValue = append(bestValue[:i], bestValue[i + 4 + int(contentLength):]...); 
+				break;
+			}
+		}else{
+			i = i + 4 + int(contentLength) - 1
+		}
+	}
+
+	record := make([]byte, 0);
+	userProtoBytes, err := proto.Marshal(in.GetUser());
+	if(err != nil){
+		return nil, err
+	}
+	userProtoSize := len(userProtoBytes);
+	signature, err := s.PrivKey.Sign(userProtoBytes);
+	if(err != nil){
+		return nil, err
+	}
+	signatureLength := len(signature);
+	record = append(record, byte(userProtoSize));
+	record = append(record, byte(userProtoSize >> 8));
+	record = append(record, byte(signatureLength));
+	record = append(record, byte(signatureLength >> 8));
+	record = append(record, userProtoBytes...);
+	record = append(record, signature...);
+	bestValue = append(bestValue, record...);
+
+	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), record);
+	if(err != nil){
+		return nil, err;
+	}
 	return &emptypb.Empty{}, nil
 }
 
@@ -322,24 +387,30 @@ func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 		return nil, errors.New("Could not retrieve holders: " + err.Error());
 	}
 
-	users := make([]*pb.User, 0)
-	for byteArray := range valueStream {
-		for i := 0; i < len(byteArray); i++ {
-			value := byteArray;
-			messageLength := uint16(value[1]) << 8 | uint16(value[0])
-			digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
-			contentLength := messageLength + digitalSignatureLength
-			user := &pb.User{}
-
-			err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
-			if err != nil {
-				return nil, err
-			}
-
-			users = append(users, user);
-			i = i + 4 + int(contentLength) - 1
+	bestValue := make([]byte, 0)
+	for value := range valueStream {
+		if len(value) > len(bestValue) {
+			bestValue = value;
 		}
 	}
+
+	users := make([]*pb.User, 0)
+	for i := 0; i < len(bestValue); i++ {
+		value := bestValue;
+		messageLength := uint16(value[1]) << 8 | uint16(value[0])
+		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		contentLength := messageLength + digitalSignatureLength
+		user := &pb.User{}
+
+		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user);
+		i = i + 4 + int(contentLength) - 1
+	}
+
 	return &pb.HoldersResponse{Holders: users}, nil
 }
 
