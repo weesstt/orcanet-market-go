@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"io/ioutil"
+	"strings"
 	"os"
 	pb "orcanet/market"
 	"github.com/golang/protobuf/proto"
@@ -50,7 +51,7 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 	// verify key is a sha256 hash
     hexPattern := "^[a-fA-F0-9]{64}$"
     regex := regexp.MustCompile(hexPattern)
-    if !regex.MatchString(key) {
+    if !regex.MatchString(strings.Replace(key, "orcanet/market/", "", -1)) {
 		return errors.New("Provided key is not in the form of a SHA-256 digest!")
 	}
 
