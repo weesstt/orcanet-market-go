@@ -28,13 +28,19 @@ import (
 	"net"
 	"sync"
 	"time"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"io/ioutil"
 
 	pb "orcanet/market"
-
+	"os"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	record "github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p/core/crypto"
+	crypto "github.com/libp2p/go-libp2p/core/crypto"
+	
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
@@ -52,11 +58,11 @@ type OrcaValidator struct{}
 
 type server struct {
 	pb.UnimplementedMarketServer
-	kDHT dht.IpfsDHT
+	K_DHT *dht.IpfsDHT
 }
 
 var (
-	port = flag.Int("port", 50051, "The server port"),
+	port = flag.Int("port", 50051, "The server port")
 )
 
 // map file hashes to supplied files + prices
@@ -121,7 +127,7 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	for i := 0; i < len(value); i++ {
 		if len(value[i]) > max {
 			//validate chain 
-			if OrcaValidator.Validate(key, value[i]) == nil {
+			if v.Validate(key, value[i]) == nil {
 				max = len(value[i])
 				maxIndex = i
 			}
@@ -131,16 +137,79 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	return maxIndex, nil;
 }
 
+//Takes a fileName and loads the private key stored in the file if the file exists
+//If the file does not exist, a private 2048 bit RSA key is generated then saved to the specified file name.
+// func generateOrLoadPrivKey(fileName string) crypto.PrivKey, error {
+//     // Use os.Stat() to get file information
+//     _, err := os.Stat(fileName)
+// 	if(err != nil){//A file does not exist, generate key and save it.
+// 		privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
+
+// 		//Libp2p saves private keys using a specific protocol 
+// 		privKeyProtoBytes := crypto.MarshalPrivateKey(privKey);
+// 		priv
+// 	}else{
+
+// 	}
+// }
+
+func checkOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
+	// Check if the privateKey.pem exists
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		// No private key file, so let's create one
+		privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, err
+		}
+		privKeyBytes := x509.MarshalPKCS1PrivateKey(privKey)
+		privKeyPEM := pem.EncodeToMemory(&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privKeyBytes,
+		})
+		err = ioutil.WriteFile(path, privKeyPEM, 0600)
+		if err != nil {
+			return nil, err
+		}
+		log.Println("New private key generated and saved to", path)
+		return privKey, nil
+	} else if err != nil {
+		// Some other error occurred when trying to read the file
+		return nil, err
+	}
+
+	// Private key file exists, let's read it
+	privKeyBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(privKeyBytes)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		log.Println("Private key file is of invalid format")
+		return nil, errors.New("private key file is of invalid format")
+	}
+	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("Existing private key loaded from", path)
+	return privKey, nil
+}
+
 func main() {
 	//TODO: read from file bootstrap.peers to get peers
 	bootstrapPeer := ""
 	ctx := context.Background()
 
 	//Generate private key for peer, 
-	//TODO: add flag option to allow user to specify public/private key files instead of generating one
-	privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-	if err != nil {
-		panic(err)
+	goPrivKey, err := checkOrCreatePrivateKey("privateKey.pem");
+	if(err != nil){
+		panic(err);
+	}
+
+	privKey, _, err := crypto.KeyPairFromStdKey(goPrivKey);
+	if(err != nil){
+		panic(err);
 	}
 
 	//Construct multiaddr from string and create host to listen on it
@@ -220,8 +289,8 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	serverStruct = server{}
-	serverStruct.kDHT = kDHT;
+	serverStruct := server{}
+	serverStruct.K_DHT = kDHT;
 	pb.RegisterMarketServer(s, &serverStruct)
 	log.Printf("Server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
@@ -234,41 +303,43 @@ func main() {
 
 // register that the a user holds a file, then add the user to the list of file holders
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
-	hash := in.GetFileHash()
-	holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
-	if(err != nil){
-		return nil, errors.New("Could not retrieve holders: " + err);
-	}
+	// hash := in.GetFileHash()
+	// holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
+	// if(err != nil){
+	// 	return nil, errors.New("Could not retrieve holders: " + err);
+	// }
 
-	files[hash] = append(files[hash], in)
-	fmt.Printf("Num of registered files: %d\n", len(files[hash]))
+	// files[hash] = append(files[hash], in)
+	// fmt.Printf("Num of registered files: %d\n", len(files[hash]))
 	return &emptypb.Empty{}, nil
 }
 
 // CheckHolders returns a list of user names holding a file with a hash
 func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
 	hash := in.GetFileHash()
-	holders, err := server.kDHT.SearchValue(ctx, "orcanet/market/" + hash);
+	valueStream, err := s.K_DHT.SearchValue(ctx, "orcanet/market/" + hash);
 	if(err != nil){
-		return nil, errors.New("Could not retrieve holders: " + err);
+		return nil, errors.New("Could not retrieve holders: " + err.Error());
 	}
 
-	users := make([]*pb.User, len(holders))
-	for i := 0; i < len(holders); i++ {
-		messageLength := uint16(value[1]) << 8 | uint16(value[0])
-		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
-		contentLength := messageLength + digitalSignatureLength
-		user := &pb.User{}
+	users := make([]*pb.User, 0)
+	for byteArray := range valueStream {
+		for i := 0; i < len(byteArray); i++ {
+			value := byteArray;
+			messageLength := uint16(value[1]) << 8 | uint16(value[0])
+			digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+			contentLength := messageLength + digitalSignatureLength
+			user := &pb.User{}
 
-		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
-		if err != nil {
-			return err
+			err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
+			if err != nil {
+				return nil, err
+			}
+
+			users = append(users, user);
+			i = i + 4 + int(contentLength) - 1
 		}
-
-		users = append(users, user);
-		i = i + 4 + int(contentLength) - 1
 	}
-
 	return &pb.HoldersResponse{Holders: users}, nil
 }
 
