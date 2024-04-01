@@ -152,8 +152,8 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 			if v.Validate(key, value[i]) == nil {
 				
 				suppliedTime := uint64(0)
-				for i = 1; i < 5; i++ {
-					suppliedTime = suppliedTime | uint64(value[i][len(value[i]) - i]) << (i - 1)
+				for j := 1; j < 5; j++ {
+					suppliedTime = suppliedTime | uint64(value[i][len(value[i]) - j]) << (j - 1)
 				}
 
 				if(suppliedTime > latestTime){
