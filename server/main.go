@@ -239,30 +239,73 @@ func main() {
 
 }
 
-// register that the a user holds a file, then add the user to the list of file holders
+// RegisterFile registers that a user holds a file, then adds the user to the list of file holders in the DHT.
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
 	hash := in.GetFileHash()
 
-	files[hash] = append(files[hash], in)
-	fmt.Printf("Num of registered files: %d\n", len(files[hash]))
+	fmt.Printf("Registering file for hash: %s\n", hash)
+
+	// Retrieve the current value from the DHT
+	currentValue, err := kDHT.GetValue(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Marshal the user message to bytes
+	userBytes, err := proto.Marshal(in.GetUser())
+	if err != nil {
+		return nil, err
+	}
+
+	// Sign the user bytes
+	signature, err := host.GetHost().GetIdentity().Sign(ctx, userBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Append the user bytes and signature to the end of the byte array
+	currentValue = append(currentValue, userBytes...)
+	currentValue = append(currentValue, signature...)
+
+	// Put the entire byte array chain into the DHT
+	if err := kDHT.PutValue(ctx, hash, currentValue); err != nil {
+		return nil, err
+	}
+
+	fmt.Println("File registered successfully")
 	return &emptypb.Empty{}, nil
 }
 
-// CheckHolders returns a list of user names holding a file with a hash
+
+// CheckHolders returns a list of user names holding a file with a hash from the DHT.
 func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
 	hash := in.GetFileHash()
 
-	holders := files[hash]
+	fmt.Printf("Checking holders for file with hash: %s\n", hash)
 
-	users := make([]*pb.User, len(holders))
-	for i, holder := range holders {
-		users[i] = holder.GetUser()
+	// Retrieve the current value from the DHT
+	currentValue, err := kDHT.GetValue(ctx, hash)
+	if err != nil {
+		return nil, err
 	}
 
-	printHoldersMap()
+	// Parse the byte array chain into user messages
+	users := make([]*pb.User, 0)
+	for len(currentValue) > 0 {
+		messageLength := int(currentValue[1])<<8 | int(currentValue[0])
+		user := &pb.User{}
+		err := proto.Unmarshal(currentValue[4:4+messageLength], user)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+		currentValue = currentValue[4+messageLength:]
+	}
 
+	fmt.Println("Checking holders successful")
 	return &pb.HoldersResponse{Holders: users}, nil
 }
+
 
 func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertise string) {
 	routingDiscovery := drouting.NewRoutingDiscovery(kDHT)
