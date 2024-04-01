@@ -46,6 +46,8 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 )
+// Declare kDHT as a package-level variable
+var kDHT *dht.IpfsDHT
 
 // Create a record validator to store our own values within our defined protocol
 type OrcaValidator struct{}
@@ -124,17 +126,45 @@ var (
 var files = make(map[string][]*pb.RegisterFileRequest)
 
 // print the current holders map
-func printHoldersMap() {
-	for hash, holders := range files {
-		fmt.Printf("\nFile Hash: %s\n", hash)
-		for _, holder := range holders {
-			user := holder.GetUser()
-			fmt.Printf("ID: %s, Price: %d\n", user.GetId(), user.GetPrice())
-			// fmt.Printf("Price: %d\n", user.GetPrice())
-		}
+// printHoldersMap prints the current holders map
+func printHoldersMap(ctx context.Context, kDHT *dht.IpfsDHT, files map[string][]*pb.RegisterFileRequest) {
+    // Iterate over each file hash and retrieve holders from DHT
+    for hash, holders := range files {
+        // Retrieve the current value from the DHT
+        currentValue, err := kDHT.GetValue(ctx, hash)
+        if err != nil {
+            fmt.Printf("Error retrieving holders for file %s: %v\n", hash, err)
+            continue
+        }
 
-	}
+        // Parse the byte array to extract user information
+        var users []*pb.User
+        for i := 0; i < len(currentValue); {
+            messageLength := uint16(currentValue[i+1])<<8 | uint16(currentValue[i])
+            digitalSignatureLength := uint16(currentValue[i+3])<<8 | uint16(currentValue[i+2])
+            contentLength := messageLength + digitalSignatureLength
+            user := &pb.User{}
+
+            // Unmarshal user bytes
+            err := proto.Unmarshal(currentValue[i+4:i+4+int(messageLength)], user)
+            if err != nil {
+                fmt.Printf("Error parsing user for file %s: %v\n", hash, err)
+                continue
+            }
+
+            users = append(users, user)
+            i += 4 + int(contentLength)
+        }
+
+        // Print holders for the file
+        fmt.Printf("File Hash: %s\n", hash)
+        for _, holder := range holders {
+            user := holder.GetUser()
+            fmt.Printf("ID: %s, Price: %d\n", user.GetId(), user.GetPrice())
+        }
+    }
 }
+
 
 type server struct {
 	pb.UnimplementedMarketServer
@@ -241,69 +271,81 @@ func main() {
 
 // RegisterFile registers that a user holds a file, then adds the user to the list of file holders in the DHT.
 func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
-	hash := in.GetFileHash()
+    hash := in.GetFileHash()
 
-	fmt.Printf("Registering file for hash: %s\n", hash)
+    fmt.Printf("Registering file for hash: %s\n", hash)
 
-	// Retrieve the current value from the DHT
-	currentValue, err := kDHT.GetValue(ctx, hash)
-	if err != nil {
-		return nil, err
-	}
+    // Retrieve the current value from the DHT
+    currentValue, err := kDHT.GetValue(ctx, hash)
+    if err != nil {
+        return nil, err
+    }
 
-	// Marshal the user message to bytes
-	userBytes, err := proto.Marshal(in.GetUser())
-	if err != nil {
-		return nil, err
-	}
+    // Marshal the user message to bytes
+    userBytes, err := proto.Marshal(in.GetUser())
+    if err != nil {
+        return nil, err
+    }
 
-	// Sign the user bytes
-	signature, err := host.GetHost().GetIdentity().Sign(ctx, userBytes)
-	if err != nil {
-		return nil, err
-	}
+    // Get the private key of the host
+    privKey:= kDHT.Host().Peerstore().PrivKey(kDHT.Host().ID())
 
-	// Append the user bytes and signature to the end of the byte array
-	currentValue = append(currentValue, userBytes...)
-	currentValue = append(currentValue, signature...)
 
-	// Put the entire byte array chain into the DHT
-	if err := kDHT.PutValue(ctx, hash, currentValue); err != nil {
-		return nil, err
-	}
+    // Sign the user bytes
+    signature, err := privKey.Sign(userBytes)
+    if err != nil {
+        return nil, err
+    }
 
-	fmt.Println("File registered successfully")
-	return &emptypb.Empty{}, nil
+    // Append the user bytes and signature to the end of the byte array
+    currentValue = append(currentValue, userBytes...)
+    currentValue = append(currentValue, signature...)
+
+    // Put the entire byte array chain into the DHT
+    if err := kDHT.PutValue(ctx, hash, currentValue); err != nil {
+        return nil, err
+    }
+	fmt.Printf("Number of registered files: %d\n", len(files))
+
+    fmt.Println("File registered successfully")
+    return &emptypb.Empty{}, nil
 }
 
 
-// CheckHolders returns a list of user names holding a file with a hash from the DHT.
+
+
+// CheckHolders returns a list of user names holding a file with a hash
 func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
-	hash := in.GetFileHash()
+    hash := in.GetFileHash()
 
-	fmt.Printf("Checking holders for file with hash: %s\n", hash)
+    // Retrieve the current value from the DHT
+    currentValue, err := kDHT.GetValue(ctx, hash)
+    if err != nil {
+        return nil, err
+    }
 
-	// Retrieve the current value from the DHT
-	currentValue, err := kDHT.GetValue(ctx, hash)
-	if err != nil {
-		return nil, err
-	}
+    // Parse the byte array to extract user information
+    var users []*pb.User
+    for i := 0; i < len(currentValue); {
+        messageLength := uint16(currentValue[i+1])<<8 | uint16(currentValue[i])
+        digitalSignatureLength := uint16(currentValue[i+3])<<8 | uint16(currentValue[i+2])
+        contentLength := messageLength + digitalSignatureLength
+        user := &pb.User{}
 
-	// Parse the byte array chain into user messages
-	users := make([]*pb.User, 0)
-	for len(currentValue) > 0 {
-		messageLength := int(currentValue[1])<<8 | int(currentValue[0])
-		user := &pb.User{}
-		err := proto.Unmarshal(currentValue[4:4+messageLength], user)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-		currentValue = currentValue[4+messageLength:]
-	}
+        // Unmarshal user bytes
+        err := proto.Unmarshal(currentValue[i+4:i+4+int(messageLength)], user)
+        if err != nil {
+            return nil, err
+        }
 
-	fmt.Println("Checking holders successful")
-	return &pb.HoldersResponse{Holders: users}, nil
+        users = append(users, user)
+        i += 4 + int(contentLength)
+    }
+
+    // Print holders map
+    printHoldersMap(ctx, kDHT, files)
+
+    return &pb.HoldersResponse{Holders: users}, nil
 }
 
 
