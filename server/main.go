@@ -17,7 +17,14 @@
  * limitations under the License.
  *
  *
+ *	References:
+ *		https://gist.github.com/upperwal/38cd0c98e4a6b34c061db0ff26def9b9
+ *		https://ldej.nl/post/building-an-echo-application-with-libp2p/
+ *		https://github.com/libp2p/go-libp2p/blob/master/examples/chat-with-rendezvous/chat.go
+ *		https://github.com/libp2p/go-libp2p/blob/master/examples/pubsub/basic-chat-with-rendezvous/main.go
  */
+
+
 package main
 
 import (
@@ -123,7 +130,6 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 
 		i = i + 4 + int(contentLength) - 1
 	}
-
 
     currentTime := time.Now().UTC()
     unixTimestamp := currentTime.Unix()
@@ -352,14 +358,11 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 	}
 
 	//remove record for id if it already exists
-	fmt.Println(len(bestValue));
 	for i := 0; i < len(bestValue) - 4; i++ {
-		fmt.Println("record ", i)
 		value := bestValue
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
-		fmt.Println(int(contentLength) + 4);
 		user := &pb.User{}
 
 		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
@@ -378,8 +381,6 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 
 			if(recordExists){
 				bestValue = append(bestValue[:i], bestValue[i + 4 + int(contentLength):]...);
-				fmt.Println(len(bestValue));
-				fmt.Println("record exists!")
 				break;
 			}
 		}
