@@ -45,7 +45,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	// dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -62,6 +62,7 @@ type server struct {
 	K_DHT *dht.IpfsDHT
 	PrivKey crypto.PrivKey
 	PubKey crypto.PubKey
+	V record.Validator
 }
 
 var (
@@ -279,7 +280,6 @@ func main() {
 	wg.Wait()
 
 	go discoverPeers(ctx, host, kDHT, "orcanet/market")
-	time.Sleep(time.Second * 5)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
@@ -291,6 +291,7 @@ func main() {
 	serverStruct.K_DHT = kDHT;
 	serverStruct.PrivKey = privKey;
 	serverStruct.PubKey = pubKey;
+	serverStruct.V = validator
 
 	pb.RegisterMarketServer(s, &serverStruct)
 	log.Printf("Server listening at %v", lis.Addr())
@@ -323,11 +324,14 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 	}
 
 	//remove record for id if it already exists
+	fmt.Println(len(bestValue));
 	for i := 0; i < len(bestValue); i++ {
+		fmt.Println("record ", i)
 		value := bestValue
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
+		fmt.Println(int(contentLength) + 4);
 		user := &pb.User{}
 
 		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
@@ -345,12 +349,14 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 			}
 
 			if(recordExists){
-				bestValue = append(bestValue[:i], bestValue[i + 4 + int(contentLength):]...); 
+				bestValue = append(bestValue[:i], bestValue[i + 4 + int(contentLength):]...);
+				fmt.Println(len(bestValue));
+				fmt.Println("record exists!")
 				break;
 			}
-		}else{
-			i = i + 4 + int(contentLength) - 1
 		}
+
+		i = i + 4 + int(contentLength) - 1;
 	}
 
 	record := make([]byte, 0);
@@ -371,8 +377,7 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 	record = append(record, userProtoBytes...);
 	record = append(record, signature...);
 	bestValue = append(bestValue, record...);
-
-	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), record);
+	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), bestValue);
 	if(err != nil){
 		return nil, err;
 	}
@@ -397,8 +402,8 @@ func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 	users := make([]*pb.User, 0)
 	for i := 0; i < len(bestValue); i++ {
 		value := bestValue;
-		messageLength := uint16(value[1]) << 8 | uint16(value[0])
-		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
+		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
 		user := &pb.User{}
 
@@ -415,8 +420,8 @@ func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 }
 
 func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertise string) {
-	routingDiscovery := drouting.NewRoutingDiscovery(kDHT)
-	dutil.Advertise(ctx, routingDiscovery, advertise)
+	routingDiscovery := drouting.NewRoutingDiscovery(kDHT);
+	// dutil.Advertise(ctx, routingDiscovery, advertise)
 
 	// Look for others who have announced and attempt to connect to them
 	for {
