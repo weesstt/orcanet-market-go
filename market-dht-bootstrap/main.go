@@ -58,8 +58,8 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 	pubKeySet := make(map[string] bool)
 
 	for i := 0; i < len(value) - 4; i++ {
-		messageLength := uint16(value[1]) << 8 | uint16(value[0])
-		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
+		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
+		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
 		user := &pb.User{}
 
