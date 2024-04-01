@@ -57,7 +57,7 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 
 	pubKeySet := make(map[string] bool)
 
-	for i := 0; i < len(value); i++ {
+	for i := 0; i < len(value) - 4; i++ {
 		messageLength := uint16(value[1]) << 8 | uint16(value[0])
 		digitalSignatureLength := uint16(value[3]) << 8 | uint16(value[2])
 		contentLength := messageLength + digitalSignatureLength
@@ -95,19 +95,43 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 		i = i + 4 + int(contentLength) - 1
 	}
 
+
+    currentTime := time.Now().UTC()
+    unixTimestamp := currentTime.Unix()
+    unixTimestampInt64 := uint64(unixTimestamp)
+
+	suppliedTime := uint64(0)
+	for i := 1; i < 5; i++ {
+		suppliedTime = suppliedTime | uint64(value[len(value) - i]) << (i - 1)
+	}
+
+	if(suppliedTime > unixTimestampInt64){
+		return errors.New("Supplied time cannot be less than current time")
+	}
+
 	return nil
 }
 
-//We will select the best value based on the longest, valid chain
+//We will select the best value based on the longest, latest, valid chain
 func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	max := 0
 	maxIndex := 0
+	latestTime := uint64(0);
 	for i := 0; i < len(value); i++ {
 		if len(value[i]) > max {
 			//validate chain 
 			if v.Validate(key, value[i]) == nil {
-				max = len(value[i])
-				maxIndex = i
+				
+				suppliedTime := uint64(0)
+				for i = 1; i < 5; i++ {
+					suppliedTime = suppliedTime | uint64(value[i][len(value) - i]) << (i - 1)
+				}
+
+				if(suppliedTime > latestTime){
+					max = len(value[i])
+					latestTime = suppliedTime;
+					maxIndex = i;
+				}
 			}
 		}
 	}
