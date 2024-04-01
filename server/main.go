@@ -73,6 +73,9 @@ var (
 //TODO: change this to be the DHT instance
 var files = make(map[string][]*pb.RegisterFileRequest)
 
+//Validates keys and values that are being put into the DHT.
+//Keys must conform to a sha256 hash
+//Values must conform the specification in /server/README.md
 func (v OrcaValidator) Validate(key string, value []byte) error{
 	// verify key is a sha256 hash
     hexPattern := "^[a-fA-F0-9]{64}$"
@@ -83,7 +86,7 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 
 	pubKeySet := make(map[string] bool)
 
-	for i := 0; i < len(value); i++ {
+	for i := 0; i < len(value) - 4; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
@@ -121,25 +124,50 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 		i = i + 4 + int(contentLength) - 1
 	}
 
+
+    currentTime := time.Now().UTC()
+    unixTimestamp := currentTime.Unix()
+    unixTimestampInt64 := uint64(unixTimestamp)
+
+	suppliedTime := uint64(0)
+	for i := 1; i < 5; i++ {
+		suppliedTime = suppliedTime | (uint64(value[len(value) - i]) << (i - 1))
+	}
+
+	if(suppliedTime > unixTimestampInt64){
+		return errors.New("Supplied time cannot be less than current time")
+	}
+
 	return nil
 }
 
-//We will select the best value based on the longest, valid chain
+//We will select the best value based on the longest, latest, valid chain
 func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	max := 0
 	maxIndex := 0
+	latestTime := uint64(0);
 	for i := 0; i < len(value); i++ {
 		if len(value[i]) > max {
 			//validate chain 
 			if v.Validate(key, value[i]) == nil {
-				max = len(value[i])
-				maxIndex = i
+				
+				suppliedTime := uint64(0)
+				for i = 1; i < 5; i++ {
+					suppliedTime = suppliedTime | uint64(value[i][len(value) - i]) << (i - 1)
+				}
+
+				if(suppliedTime > latestTime){
+					max = len(value[i])
+					latestTime = suppliedTime;
+					maxIndex = i;
+				}
 			}
 		}
 	}
 
 	return maxIndex, nil;
 }
+
 
 func checkOrCreatePrivateKey(path string) (crypto.PrivKey, error) {
 	// Check if the privateKey.pem exists
@@ -376,6 +404,17 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 	record = append(record, byte(signatureLength >> 8));
 	record = append(record, userProtoBytes...);
 	record = append(record, signature...);
+
+	currentTime := time.Now().UTC()
+    unixTimestamp := currentTime.Unix()
+    unixTimestampInt64 := uint64(unixTimestamp)
+
+	for i := 3; i >= 0; i-- {
+		record = append(record, byte(unixTimestampInt64 >> i))
+	}
+	if(len(bestValue) != 0){
+		bestValue = bestValue[:len(bestValue) - 4] //get rid of previous values timestamp
+	}
 	bestValue = append(bestValue, record...);
 	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), bestValue);
 	if(err != nil){
@@ -400,7 +439,7 @@ func (s *server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 	}
 
 	users := make([]*pb.User, 0)
-	for i := 0; i < len(bestValue); i++ {
+	for i := 0; i < len(bestValue) - 4; i++ {
 		value := bestValue;
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
