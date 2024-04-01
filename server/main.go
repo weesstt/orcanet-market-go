@@ -153,7 +153,7 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 				
 				suppliedTime := uint64(0)
 				for i = 1; i < 5; i++ {
-					suppliedTime = suppliedTime | uint64(value[i][len(value) - i]) << (i - 1)
+					suppliedTime = suppliedTime | uint64(value[i][len(value[i]) - i]) << (i - 1)
 				}
 
 				if(suppliedTime > latestTime){
