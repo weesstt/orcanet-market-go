@@ -353,7 +353,7 @@ func (s *server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 
 	//remove record for id if it already exists
 	fmt.Println(len(bestValue));
-	for i := 0; i < len(bestValue); i++ {
+	for i := 0; i < len(bestValue) - 4; i++ {
 		fmt.Println("record ", i)
 		value := bestValue
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
