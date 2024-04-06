@@ -57,7 +57,6 @@ func main() {
 
 	// Generate a random ID for new user
 	// userID := fmt.Sprintf("user%d", rand.Intn(10000))
-
 	fmt.Print("Enter a price for supplying files: ")
 	var price int64
 	_, err = fmt.Scanln(&price)
@@ -68,9 +67,8 @@ func main() {
 
 	// Create a User struct with the provided username and generated ID
 	user := &pb.User{
-		// Id:    userID,
-		// Name:  username,
-		Ip:    "localhost",
+		Name: username,
+		Ip:    "localhost2",
 		Port:  416320,
 		Price: price,
 	}
@@ -128,14 +126,13 @@ func checkHolders(c pb.MarketClient, user *pb.User, fileHash string) {
 		log.Fatalf("Error: %v", err)
 		return
 	}
-	supply_files := holders.GetHolders()
+	supply_files := holders.GetHolders();
 	slices.SortFunc(supply_files, func(a, b *pb.User) int {
 		return cmp.Compare(a.GetPrice(), b.GetPrice())
 	})
-	// for idx, holder := range supply_files {
-	// 	fmt.Printf("(%d) Username: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
-	// }
-
+	for idx, holder := range supply_files {
+		fmt.Printf("(%d), Name: %s, Price: %d\n", idx, holder.GetName(), holder.GetPrice())
+	}
 }
 
 func registerFile(c pb.MarketClient, user *pb.User, fileHash string) {
