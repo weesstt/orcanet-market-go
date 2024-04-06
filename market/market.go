@@ -6,11 +6,10 @@
 *		https://github.com/libp2p/go-libp2p/blob/master/examples/pubsub/basic-chat-with-rendezvous/main.go
 */
 
-package main
+package market
 
 import (
 	"context"
-	pb "orcanet/market"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	record "github.com/libp2p/go-libp2p-record"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
@@ -21,7 +20,7 @@ import (
 )
 
 type Server struct {
-	pb.UnimplementedMarketServer
+	UnimplementedMarketServer
 	K_DHT *dht.IpfsDHT
 	PrivKey crypto.PrivKey
 	PubKey crypto.PubKey
@@ -40,7 +39,7 @@ type Server struct {
  *   An error, if any
  * Author: Austin
  */
-func (s *Server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (*emptypb.Empty, error) {
+func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*emptypb.Empty, error) {
 	hash := in.GetFileHash()
 	pubKeyBytes, err := s.PubKey.Raw()
 	if(err != nil){
@@ -66,7 +65,7 @@ func (s *Server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
-		user := &pb.User{}
+		user := &User{}
 
 		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
 		if err != nil {
@@ -139,7 +138,7 @@ func (s *Server) RegisterFile(ctx context.Context, in *pb.RegisterFileRequest) (
  *   An error, if any
  * Author: Austin
  */
-func (s *Server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (*pb.HoldersResponse, error) {
+func (s *Server) CheckHolders(ctx context.Context, in *CheckHoldersRequest) (*HoldersResponse, error) {
 	hash := in.GetFileHash()
 	valueStream, err := s.K_DHT.SearchValue(ctx, "orcanet/market/" + hash);
 	if(err != nil){
@@ -153,13 +152,13 @@ func (s *Server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 		}
 	}
 
-	users := make([]*pb.User, 0)
+	users := make([]*User, 0)
 	for i := 0; i < len(bestValue) - 4; i++ {
 		value := bestValue;
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
-		user := &pb.User{}
+		user := &User{}
 
 		err := proto.Unmarshal(value[i + 4:i + 4 + int(messageLength)], user) //will parse bytes only until user struct is filled out
 		if err != nil {
@@ -170,5 +169,5 @@ func (s *Server) CheckHolders(ctx context.Context, in *pb.CheckHoldersRequest) (
 		i = i + 4 + int(contentLength) - 1
 	}
 
-	return &pb.HoldersResponse{Holders: users}, nil
+	return &HoldersResponse{Holders: users}, nil
 }

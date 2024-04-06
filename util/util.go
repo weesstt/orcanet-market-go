@@ -1,4 +1,4 @@
-package main
+package util
 
 /*
  *	References:
@@ -112,7 +112,7 @@ func CheckOrCreatePrivateKey(path string) (crypto.PrivKey, error) {
  * 				DHT is in server mode then that string will be used to announce ourselves as well.
  *
  */
-func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertise string) {
+func DiscoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertise string) {
 	routingDiscovery := drouting.NewRoutingDiscovery(kDHT);
 	if(kDHT.Mode() == dht.ModeServer){
 		dutil.Advertise(ctx, routingDiscovery, advertise);
