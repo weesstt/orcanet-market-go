@@ -1,8 +1,8 @@
 # Go Market Server
 
-## Team Sea Chicken 🐔
+## Team Sea Chicken 🐔 and Starfish ⭐️
 
-An implementation of the OrcaNet market server, built using Go and [gRPC](https://grpc.io/docs/languages/go/quickstart).
+A DHT implementation of the OrcaNet market server, built using Go and [gRPC](https://grpc.io/docs/languages/go/quickstart).
 
 ## Setup
 
@@ -48,7 +48,7 @@ Detailed gRPC endpoints are in `market/market.proto`
 
 - Holders of a file can register the file using the RegisterFile RPC.
   - Provide a User with 5 fields: 
-    - `id`: some string to identify the user.
+    - `id`: bytes of the user's public key.
     - `name`: a human-readable string to identify the user
     - `ip`: a string of the public ip address
     - `port`: an int32 of the port
