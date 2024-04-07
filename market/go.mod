@@ -1,3 +1,4 @@
+
 module github.com/weesstt/starfish-market
 
 go 1.21.5
