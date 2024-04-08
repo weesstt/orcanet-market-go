@@ -32,3 +32,4 @@ Our market records will be validated for the following specification:
 
 1) Each signature of the user protocol buffer message must be valid or the DHT will not accept the chain.
 2) There can only be one record per public key in a chain or the DHT will not accept the chain.
+3) The DHT will select values based on the latest, longest chain.
