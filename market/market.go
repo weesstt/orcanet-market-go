@@ -14,9 +14,9 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"errors"
 	"github.com/golang/protobuf/proto"
 	"time"
+	"strconv"
 )
 
 type Server struct {
@@ -47,21 +47,13 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 	}
 	in.GetUser().Id = pubKeyBytes;
 
-	holders, err := s.K_DHT.SearchValue(ctx, "orcanet/market/" + hash);
+	value, err := s.K_DHT.GetValue(ctx, "orcanet/market/" + hash);
 	if(err != nil){
-		return nil, errors.New("Could not retrieve holders: " + err.Error());
-	}
-
-	bestValue := make([]byte, 0)
-	for value := range holders {
-		if len(value) > len(bestValue) {
-			bestValue = value;
-		}
+		value = make([]byte, 0)
 	}
 
 	//remove record for id if it already exists
-	for i := 0; i < len(bestValue) - 4; i++ {
-		value := bestValue
+	for i := 0; i < len(value) - 4; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
@@ -82,7 +74,7 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 			}
 
 			if(recordExists){
-				bestValue = append(bestValue[:i], bestValue[i + 4 + int(contentLength):]...);
+				value = append(value[:i], value[i + 4 + int(contentLength):]...);
 				break;
 			}
 		}
@@ -111,15 +103,16 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 	currentTime := time.Now().UTC()
     unixTimestamp := currentTime.Unix()
     unixTimestampInt64 := uint64(unixTimestamp)
+	for i := 7; i >= 0; i-- {
+		curByte := unixTimestampInt64 >> (i * 8)
+		record = append(record, byte(curByte))
+	}
 
-	for i := 3; i >= 0; i-- {
-		record = append(record, byte(unixTimestampInt64 >> i))
+	if(len(value) != 0){
+		value = value[:len(value) - 8] //get rid of previous values timestamp
 	}
-	if(len(bestValue) != 0){
-		bestValue = bestValue[:len(bestValue) - 4] //get rid of previous values timestamp
-	}
-	bestValue = append(bestValue, record...);
-	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), bestValue);
+	value = append(value, record...);
+	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), value);
 	if(err != nil){
 		return nil, err;
 	}
@@ -140,21 +133,13 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
  */
 func (s *Server) CheckHolders(ctx context.Context, in *CheckHoldersRequest) (*HoldersResponse, error) {
 	hash := in.GetFileHash()
-	valueStream, err := s.K_DHT.SearchValue(ctx, "orcanet/market/" + hash);
-	if(err != nil){
-		return nil, errors.New("Could not retrieve holders: " + err.Error());
-	}
-
-	bestValue := make([]byte, 0)
-	for value := range valueStream {
-		if len(value) > len(bestValue) {
-			bestValue = value;
-		}
-	}
-
 	users := make([]*User, 0)
-	for i := 0; i < len(bestValue) - 4; i++ {
-		value := bestValue;
+	value, err := s.K_DHT.GetValue(ctx, "orcanet/market/" + hash);
+	if(err != nil){
+		return &HoldersResponse{Holders: users}, nil
+	}
+
+	for i := 0; i < len(value) - 4; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength

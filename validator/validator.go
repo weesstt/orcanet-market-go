@@ -4,10 +4,12 @@ import (
 	"regexp"
 	"strings"
 	"errors"
+	"strconv"
 	"time"
 	"github.com/golang/protobuf/proto"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	pb "orcanet/market"
+	"orcanet/util"
 )
 
 type OrcaValidator struct{}
@@ -26,32 +28,22 @@ type OrcaValidator struct{}
  * Author: Austin
  */
 func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
-	max := 0
+	max := len(value[0])
 	maxIndex := 0
-	latestTime := uint64(0);
-	for i := 0; i < len(value); i++ {
-		if len(value[i]) > max {
-			//validate chain 
-			if v.Validate(key, value[i]) == nil {
-				suppliedTime := uint64(0)
-				for j := 1; j < 5; j++ {
-					suppliedTime = suppliedTime | uint64(value[i][len(value[i]) - j]) << (j - 1)
-				}
-
-				if(suppliedTime > latestTime){
-					max = len(value[i])
-					latestTime = suppliedTime;
-					maxIndex = i;
-				}
+	latestTime := util.ConvertBytesTo64BitInt(value[0][(len(value[0]) - 8):]);
+	for i := 1; i < len(value); i++ {
+		suppliedTime := util.ConvertBytesTo64BitInt(value[i][(len(value[i]) - 8):])
+		if(len(value[i]) >= max){
+			if(suppliedTime >= latestTime){
+				max = len(value[i]);
+				latestTime = suppliedTime;
+				maxIndex = i;
 			}
 		}
 	}
 	return maxIndex, nil;
 }
 
-//
-//
-//
 /*
  * Validates keys and values that are being put into the OrcaNet market DHT.
  * Keys must conform to a SHA256 hash, Values must conform the specification in /server/README.md
@@ -116,14 +108,10 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
     unixTimestamp := currentTime.Unix()
     unixTimestampInt64 := uint64(unixTimestamp)
 
-	suppliedTime := uint64(0)
-	for i := 1; i < 5; i++ {
-		suppliedTime = suppliedTime | (uint64(value[len(value) - i]) << (i - 1))
-	}
+	suppliedTime := util.ConvertBytesTo64BitInt(value[len(value) - 8:])
 
 	if(suppliedTime > unixTimestampInt64){
 		return errors.New("Supplied time cannot be less than current time")
 	}
-
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"os"
 	"log"
 	"errors"
+	"strconv"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	host "github.com/libp2p/go-libp2p/core/host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -172,4 +173,24 @@ func ReadBootstrapPeers() []multiaddr.Multiaddr {
 	}
 
 	return peers
+}
+
+/*
+ * Convert a max 8 byte slice to its 64 bit int value.
+ *
+ * Parameters:
+ *   value: The byte slice to convert to an int
+ *
+ * Returns:
+ *   An unsigned 64 bit int
+ * Author: Austin
+ */
+func ConvertBytesTo64BitInt(value []byte) uint64 {
+	suppliedTime := uint64(0)
+	shift := 7
+	for i := len(value) - 7; i < len(value); i++ {
+		suppliedTime = suppliedTime | uint64(value[i]) << (shift * 8)
+		shift--;
+	}
+	return suppliedTime
 }

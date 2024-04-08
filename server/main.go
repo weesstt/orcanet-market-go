@@ -40,6 +40,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
+	"orcanet/util"
+	"orcanet/market"
+	"orcanet/validator"
 )
 
 var (
@@ -51,7 +54,7 @@ func main() {
 	ctx := context.Background()
 
 	//Generate or load private key for libp2p host, 
-	privKey, err := CheckOrCreatePrivateKey("privateKey.pem");
+	privKey, err := util.CheckOrCreatePrivateKey("privateKey.pem");
 	if(err != nil){
 		panic(err);
 	}
@@ -74,11 +77,11 @@ func main() {
 		log.Printf("%s/p2p/%s", addr, host.ID())
 	}
 
-	bootstrapPeers := ReadBootstrapPeers()
+	bootstrapPeers := util.ReadBootstrapPeers()
 
 	// Start a DHT, for now we will start in client mode until we can implement a way to 
 	// detect if we are behind a NAT or not to run in server mode.
-	var validator record.Validator = OrcaValidator{}
+	var validator record.Validator = validator.OrcaValidator{}
 	var options []dht.Option
 	options = append(options, dht.Mode(dht.ModeClient))
 	options = append(options, dht.ProtocolPrefix("orcanet/market"), dht.Validator(validator))
@@ -111,7 +114,7 @@ func main() {
 	}
 	wg.Wait()
 
-	go discoverPeers(ctx, host, kDHT, "orcanet/market")
+	go util.DiscoverPeers(ctx, host, kDHT, "orcanet/market")
 
 	//Start gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
@@ -120,7 +123,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	serverStruct := Server{}
+	serverStruct := market.Server{}
 	serverStruct.K_DHT = kDHT;
 	serverStruct.PrivKey = privKey;
 	serverStruct.PubKey = pubKey;
