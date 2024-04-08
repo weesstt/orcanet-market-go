@@ -4,12 +4,12 @@ import (
 	"regexp"
 	"strings"
 	"errors"
-	"strconv"
 	"time"
 	"github.com/golang/protobuf/proto"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	pb "orcanet/market"
 	"orcanet/util"
+	"fmt"
 )
 
 type OrcaValidator struct{}
@@ -33,6 +33,7 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
 	latestTime := util.ConvertBytesTo64BitInt(value[0][(len(value[0]) - 8):]);
 	for i := 1; i < len(value); i++ {
 		suppliedTime := util.ConvertBytesTo64BitInt(value[i][(len(value[i]) - 8):])
+		fmt.Println(suppliedTime)
 		if(len(value[i]) >= max){
 			if(suppliedTime >= latestTime){
 				max = len(value[i]);
@@ -66,7 +67,7 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 
 	pubKeySet := make(map[string] bool)
 
-	for i := 0; i < len(value) - 4; i++ {
+	for i := 0; i < len(value) - 8; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
@@ -109,7 +110,6 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
     unixTimestampInt64 := uint64(unixTimestamp)
 
 	suppliedTime := util.ConvertBytesTo64BitInt(value[len(value) - 8:])
-
 	if(suppliedTime > unixTimestampInt64){
 		return errors.New("Supplied time cannot be less than current time")
 	}

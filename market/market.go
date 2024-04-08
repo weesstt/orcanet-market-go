@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"github.com/golang/protobuf/proto"
 	"time"
-	"strconv"
 )
 
 type Server struct {
@@ -53,7 +52,7 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 	}
 
 	//remove record for id if it already exists
-	for i := 0; i < len(value) - 4; i++ {
+	for i := 0; i < len(value) - 8; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength
@@ -112,6 +111,7 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 		value = value[:len(value) - 8] //get rid of previous values timestamp
 	}
 	value = append(value, record...);
+
 	err = s.K_DHT.PutValue(ctx, "orcanet/market/" + in.GetFileHash(), value);
 	if(err != nil){
 		return nil, err;
@@ -139,7 +139,7 @@ func (s *Server) CheckHolders(ctx context.Context, in *CheckHoldersRequest) (*Ho
 		return &HoldersResponse{Holders: users}, nil
 	}
 
-	for i := 0; i < len(value) - 4; i++ {
+	for i := 0; i < len(value) - 8; i++ {
 		messageLength := uint16(value[i + 1]) << 8 | uint16(value[i])
 		digitalSignatureLength := uint16(value[i + 3]) << 8 | uint16(value[i + 2])
 		contentLength := messageLength + digitalSignatureLength

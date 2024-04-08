@@ -18,7 +18,6 @@ import (
 	"os"
 	"log"
 	"errors"
-	"strconv"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	host "github.com/libp2p/go-libp2p/core/host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -188,8 +187,8 @@ func ReadBootstrapPeers() []multiaddr.Multiaddr {
 func ConvertBytesTo64BitInt(value []byte) uint64 {
 	suppliedTime := uint64(0)
 	shift := 7
-	for i := len(value) - 7; i < len(value); i++ {
-		suppliedTime = suppliedTime | uint64(value[i]) << (shift * 8)
+	for i := 0; i < len(value); i++ {
+		suppliedTime = suppliedTime | (uint64(value[i]) << (shift * 8))
 		shift--;
 	}
 	return suppliedTime
