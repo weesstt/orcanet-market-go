@@ -59,9 +59,9 @@ func (v OrcaValidator) Select(key string, value [][]byte) (int, error){
  */
 func (v OrcaValidator) Validate(key string, value []byte) error{
 	// verify key is a sha256 hash
-    hexPattern := "^[a-fA-F0-9]{64}$"
-    regex := regexp.MustCompile(hexPattern)
-    if !regex.MatchString(strings.Replace(key, "orcanet/market/", "", -1)) {
+	hexPattern := "^[a-fA-F0-9]{64}$"
+	regex := regexp.MustCompile(hexPattern)
+	if !regex.MatchString(strings.Replace(key, "orcanet/market/", "", -1)) {
 		return errors.New("Provided key is not in the form of a SHA-256 digest!")
 	}
 
@@ -80,7 +80,7 @@ func (v OrcaValidator) Validate(key string, value []byte) error{
 
 		if pubKeySet[string(user.GetId())] == true {
 			return errors.New("Duplicate record for the same public key found!")
-		}else{
+		} else {
 			pubKeySet[string(user.GetId())] = true
 		}
 

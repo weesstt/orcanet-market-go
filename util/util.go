@@ -161,9 +161,7 @@ func ReadBootstrapPeers() []multiaddr.Multiaddr {
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		// might have to strip the newline char ?
 		line := scanner.Text()
-
 		multiadd, err := multiaddr.NewMultiaddr(line)
 		if err != nil {
 			panic(err)

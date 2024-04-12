@@ -100,8 +100,8 @@ func (s *Server) RegisterFile(ctx context.Context, in *RegisterFileRequest) (*em
 	record = append(record, signature...);
 
 	currentTime := time.Now().UTC()
-    unixTimestamp := currentTime.Unix()
-    unixTimestampInt64 := uint64(unixTimestamp)
+	unixTimestamp := currentTime.Unix()
+	unixTimestampInt64 := uint64(unixTimestamp)
 	for i := 7; i >= 0; i-- {
 		curByte := unixTimestampInt64 >> (i * 8)
 		record = append(record, byte(curByte))
