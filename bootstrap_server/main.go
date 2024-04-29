@@ -20,6 +20,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"orcanet/util"
 	"orcanet/validator"
+	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 )
 
 func main() {
@@ -43,6 +44,12 @@ func main() {
 	host, err := libp2p.New(opts...)
 	if err != nil {
 		panic(err)
+	}
+
+	_, err = relay.New(host)
+	if err != nil {
+		log.Printf("Failed to instantiate the relay: %v", err)
+		return
 	}
 
 	log.Printf("Host ID: %s", host.ID())
